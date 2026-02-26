@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7f2ea"/>
+      <stop offset="100%" stop-color="#e0d4be"/>
+    </linearGradient>
+    <linearGradient id="pageLeft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ede4d4"/>
+    </linearGradient>
+    <linearGradient id="pageRight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ede4d4"/>
+      <stop offset="100%" stop-color="#e0d4be"/>
+    </linearGradient>
+    <linearGradient id="curl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c2783a"/>
+      <stop offset="100%" stop-color="#e8a060"/>
+    </linearGradient>
+    <linearGradient id="spine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c2783a"/>
+      <stop offset="100%" stop-color="#9a5e2a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#1a1208" flood-opacity="0.22"/>
+    </filter>
+    <filter id="pageshadow" x="-5%" y="-5%" width="115%" height="120%">
+      <feDropShadow dx="3" dy="4" stdDeviation="8" flood-color="#1a1208" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bg)" filter="url(#shadow)"/>
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#c2783a" stroke-width="6" opacity="0.35"/>
+
+  <!-- Book base / cover shadow -->
+  <rect x="90" y="310" width="332" height="18" rx="9" fill="#1a1208" opacity="0.10"/>
+
+  <!-- Left page -->
+  <path d="M256 148 C220 148 160 155 108 175 L108 318 C160 300 220 295 256 297 Z"
+        fill="url(#pageLeft)" filter="url(#pageshadow)"/>
+
+  <!-- Left page lines -->
+  <line x1="130" y1="200" x2="240" y2="192" stroke="#c2783a" stroke-width="3" stroke-linecap="round" opacity="0.25"/>
+  <line x1="130" y1="220" x2="240" y2="213" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="130" y1="240" x2="240" y2="234" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="130" y1="260" x2="240" y2="255" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="130" y1="280" x2="240" y2="276" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+
+  <!-- Right page (static, slightly curled at top-right) -->
+  <path d="M256 297 C292 295 352 300 404 318 L404 175 C352 155 292 148 256 148 Z"
+        fill="url(#pageRight)" filter="url(#pageshadow)"/>
+
+  <!-- Right page lines -->
+  <line x1="272" y1="192" x2="382" y2="200" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="272" y1="213" x2="382" y2="220" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="272" y1="234" x2="382" y2="240" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="272" y1="255" x2="382" y2="260" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+  <line x1="272" y1="276" x2="382" y2="280" stroke="#1a1208" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+
+  <!-- Turning page curl (the signature element) -->
+  <path d="M256 148 C270 148 310 145 340 130 C360 120 374 108 374 108 C358 132 340 158 320 175 C300 192 278 195 256 195 Z"
+        fill="url(#curl)" opacity="0.92"/>
+  <!-- Curl underside shading -->
+  <path d="M256 195 C278 195 300 192 320 175 C310 182 290 190 270 192 Z"
+        fill="#9a5e2a" opacity="0.35"/>
+
+  <!-- Spine -->
+  <rect x="248" y="145" width="16" height="155" rx="5" fill="url(#spine)"/>
+
+  <!-- Bottom cover -->
+  <path d="M100 315 C100 308 106 303 113 305 L256 315 L399 305 C406 303 412 308 412 315 L412 330 C412 337 406 342 399 340 L256 330 L113 340 C106 342 100 337 100 330 Z"
+        fill="#9a5e2a"/>
+  <path d="M100 315 L256 325 L412 315 L412 320 L256 330 L100 320 Z"
+        fill="#c2783a" opacity="0.5"/>
+
+  <!-- Amber dot accent top of spine -->
+  <circle cx="256" cy="152" r="7" fill="#e8a060"/>
+  <circle cx="256" cy="152" r="4" fill="#fff" opacity="0.6"/>
+</svg>

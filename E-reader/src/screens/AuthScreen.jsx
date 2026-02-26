@@ -1,5 +1,5 @@
 // src/screens/AuthScreen.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -7,10 +7,10 @@ import {
 } from "firebase/auth";
 import { auth } from "../config";
 import { useAuth } from "../UseAuth";
+import { upsertUser } from "../Db";
 
 const COLORS = ["#c2783a","#6b8f71","#7a6fa0","#b5804a","#4f7fa3","#a05a6b"];
 
-// ─── Shared primitives (same design language as HomePage) ─────────────────────
 function Field({ label, type = "text", value, onChange, placeholder, autoFocus }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -61,7 +61,6 @@ function Divider() {
   );
 }
 
-// ─── Google button ─────────────────────────────────────────────────────────────
 function GoogleBtn({ onClick, loading }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -77,7 +76,6 @@ function GoogleBtn({ onClick, loading }) {
         transition: "background 0.15s", fontFamily: "'Lora', serif",
         boxShadow: "0 1px 4px rgba(26,18,8,0.06)",
       }}>
-      {/* Google "G" SVG */}
       <svg width="18" height="18" viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.6 2.2 30.2 0 24 0 14.8 0 6.9 5.4 3 13.3l7.8 6C12.7 13 17.9 9.5 24 9.5z"/>
         <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/>
@@ -89,11 +87,9 @@ function GoogleBtn({ onClick, loading }) {
   );
 }
 
-// ─── AuthScreen ───────────────────────────────────────────────────────────────
-export default function AuthScreen() {
+export default function AuthScreen({ pendingRoomCode }) {
   const { signInWithGoogle } = useAuth();
-
-  const [mode, setMode]           = useState("signin"); // "signin" | "signup"
+  const [mode, setMode]           = useState("signin");
   const [email, setEmail]         = useState("");
   const [password, setPassword]   = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -104,8 +100,7 @@ export default function AuthScreen() {
   const handleGoogle = async () => {
     setLoading(true); setError("");
     try { await signInWithGoogle(); }
-    catch { setError("Google sign-in failed. Please try again."); }
-    finally { setLoading(false); }
+    catch { setError("Google sign-in failed. Please try again."); setLoading(false); }
   };
 
   const handleEmail = async () => {
@@ -117,8 +112,20 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        // Create account
         const cred = await createUserWithEmailAndPassword(auth, email, password);
+        // Update Firebase Auth display name
         await updateProfile(cred.user, { displayName: displayName.trim() });
+        // Create Firestore user document with chosen color
+        await upsertUser({
+          uid: cred.user.uid,
+          displayName: displayName.trim(),
+          email: cred.user.email,
+          photoURL: null,
+          color, // user's chosen color — stored so upsertUser skips randomColor
+        });
+        // Auth state change in useAuth will pick up the new user automatically
+        // No need to do anything else — App.jsx re-renders on auth change
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -131,9 +138,9 @@ export default function AuthScreen() {
         "auth/invalid-credential":    "Incorrect email or password.",
       };
       setError(msgs[err.code] || "Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
     }
+    // Don't setLoading(false) on success — let auth state change unmount this component
   };
 
   const canSubmit = email.trim() && password.trim() && (mode === "signin" || displayName.trim());
@@ -144,9 +151,6 @@ export default function AuthScreen() {
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "2rem", position: "relative", overflow: "hidden",
     }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* Warm glow */}
       <div style={{ position: "fixed", top: "10%", left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(194,120,58,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
 
       <div style={{ width: "100%", maxWidth: 400, position: "relative" }}>
@@ -159,9 +163,13 @@ export default function AuthScreen() {
           <p style={{ fontFamily: "'Crimson Pro', serif", fontStyle: "italic", color: "var(--ink-faint)", fontSize: "0.95rem", marginTop: "0.3rem" }}>
             {mode === "signin" ? "Welcome back, reader." : "Create your reading account."}
           </p>
+          {pendingRoomCode && (
+            <div style={{ marginTop: "0.75rem", background: "rgba(194,120,58,0.1)", border: "1px solid rgba(194,120,58,0.3)", borderRadius: 8, padding: "0.5rem 0.9rem", fontSize: "0.82rem", color: "var(--amber)", fontWeight: 600 }}>
+              📖 Sign in to join room #{pendingRoomCode}
+            </div>
+          )}
         </div>
 
-        {/* Card */}
         <div style={{ background: "#fff", border: "1px solid var(--paper-deep)", borderRadius: 20, padding: "2rem", boxShadow: "0 8px 40px rgba(26,18,8,0.1)" }}>
 
           {/* Tab switcher */}
@@ -181,16 +189,12 @@ export default function AuthScreen() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
-            {/* Google */}
             <GoogleBtn onClick={handleGoogle} loading={loading} />
             <Divider />
 
-            {/* Name (signup only) */}
             {mode === "signup" && (
               <div>
                 <Field label="Your name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Maya" autoFocus />
-                {/* Color picker */}
                 <div style={{ marginTop: "0.6rem" }}>
                   <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-faint)", marginBottom: "0.4rem" }}>Avatar colour</p>
                   <div style={{ display: "flex", gap: "0.4rem" }}>
@@ -209,10 +213,8 @@ export default function AuthScreen() {
             )}
 
             <Field label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus={mode === "signin"} />
-            <Field label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-            />
+            <Field label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
 
-            {/* Error */}
             {error && (
               <div style={{ background: "#fdf0ee", border: "1px solid #e8a090", borderRadius: 8, padding: "0.6rem 0.9rem", color: "#c0392b", fontSize: "0.8rem", display: "flex", gap: "0.4rem", alignItems: "center" }}>
                 <span>⚠️</span> {error}
@@ -222,11 +224,9 @@ export default function AuthScreen() {
             <PrimaryBtn onClick={handleEmail} loading={loading} disabled={!canSubmit}>
               {mode === "signin" ? "Sign in →" : "Create account →"}
             </PrimaryBtn>
-
           </div>
         </div>
 
-        {/* Footer note */}
         <p style={{ textAlign: "center", color: "var(--ink-faint)", fontSize: "0.75rem", marginTop: "1.25rem", lineHeight: 1.6 }}>
           By continuing you agree to reading books with a friend ✦
         </p>

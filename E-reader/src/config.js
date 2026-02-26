@@ -1,9 +1,3 @@
-// src/firebase/config.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Replace the values below with your own Firebase project credentials.
-// Get them from: Firebase Console → Project Settings → Your apps → SDK setup
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -20,6 +14,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-export const db   = getFirestore(app);
+export const auth           = getAuth(app);
+export const db             = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
