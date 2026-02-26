@@ -1,9 +1,9 @@
 // src/App.jsx
 import { createContext, useContext, useState } from "react";
-import { useAuth } from "./firebase/useAuth";
+import { useAuth } from "./UseAuth";
 import AuthScreen  from "./screens/AuthScreen";
-import HomePage    from "./screens/HomePage";
-import ReaderPage  from "./screens/ReaderPage";
+import HomePage    from "./screens/Homepage";
+import ReaderPage  from "./screens/ReadPage";
 
 // ─── App Context ──────────────────────────────────────────────────────────────
 export const AppContext = createContext(null);

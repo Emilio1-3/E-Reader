@@ -1,7 +1,7 @@
 // src/screens/ReaderPage.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useApp } from "../App";
-import { useRoom } from "../firebase/useRoom";
+import { useRoom } from "../Useroom";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const chunkText = (text, size = 1400) => {

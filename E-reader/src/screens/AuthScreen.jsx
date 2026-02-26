@@ -5,8 +5,8 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { auth } from "../firebase/config";
-import { useAuth } from "../firebase/useAuth";
+import { auth } from "../config";
+import { useAuth } from "../UseAuth";
 
 const COLORS = ["#c2783a","#6b8f71","#7a6fa0","#b5804a","#4f7fa3","#a05a6b"];
 
