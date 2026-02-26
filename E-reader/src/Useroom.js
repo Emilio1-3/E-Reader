@@ -18,7 +18,7 @@ import {
   subscribeToMessages,
   saveProgress,
   sendMessage as dbSendMessage,
-} from "./db";
+} from "./Db";
 
 export function useRoom({ roomId, myUserId, partnerUserId, myName, myColor }) {
   const [myPage,      setMyPage]      = useState(0);
