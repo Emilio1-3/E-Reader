@@ -188,6 +188,24 @@ export async function sendMessage({ roomId, userId, name, color, text, page }) {
   });
 }
 
+
+// ─── MUSIC SYNC ───────────────────────────────────────────────────────────────
+
+/** Host writes current playback state; partner subscribes to follow along */
+export async function saveMusicState(roomId, state) {
+  await setDoc(
+    doc(db, "rooms", roomId, "music", "state"),
+    { ...state, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export function subscribeMusicState(roomId, onChange) {
+  return onSnapshot(doc(db, "rooms", roomId, "music", "state"), (snap) => {
+    if (snap.exists()) onChange(snap.data());
+  });
+}
+
 export function subscribeToMessages({ roomId, onChange }) {
   const q = query(
     collection(db, "rooms", roomId, "messages"),

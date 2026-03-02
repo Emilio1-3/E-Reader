@@ -15,34 +15,41 @@ service cloud.firestore {
     match /rooms/{roomId} {
       allow read: if request.auth != null;
 
-      // Host creates the room
       allow create: if request.auth != null
                     && request.resource.data.hostId == request.auth.uid;
 
-      // ✅ FIX: Any signed-in user can update a room
-      // (needed so a partner can write their name into partnerName)
       allow update: if request.auth != null;
 
       allow delete: if request.auth != null
                     && resource.data.hostId == request.auth.uid;
 
-      // ── PDF chunks subcollection ──────────────────────────────────────────────
+      // ── PDF chunks ──────────────────────────────────────────────────────────
       match /pdfChunks/{chunkId} {
         allow read:  if request.auth != null;
         allow write: if request.auth != null;
       }
 
-      // ── Progress subcollection ──────────────────────────────────────────────
+      // ── Progress ─────────────────────────────────────────────────────────────
       match /progress/{userId} {
         allow read:  if request.auth != null;
         allow write: if request.auth != null && request.auth.uid == userId;
       }
 
-      // ── Messages subcollection ──────────────────────────────────────────────
+      // ── Messages ─────────────────────────────────────────────────────────────
       match /messages/{messageId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null
                       && request.resource.data.userId == request.auth.uid;
+      }
+
+      // ── Music sync ───────────────────────────────────────────────────────────
+      // Only the host (room creator) can write music state;
+      // both users can read it so the partner can follow along.
+      match /music/{docId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null
+                     && get(/databases/$(database)/documents/rooms/$(roomId)).data.hostId
+                        == request.auth.uid;
       }
     }
   }
