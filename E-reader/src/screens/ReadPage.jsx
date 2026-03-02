@@ -4,7 +4,7 @@ import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useApp } from "../App";
 import { useRoom } from "../Useroom";
-import { useSpotify } from "../UseSpotify";
+import { useSpotify } from "../Usespotify";
 import { getRoom, downloadPdfChunked, deleteRoom } from "../Db";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
