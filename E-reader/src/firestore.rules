@@ -14,12 +14,9 @@ service cloud.firestore {
     // ── Rooms ─────────────────────────────────────────────────────────────────
     match /rooms/{roomId} {
       allow read: if request.auth != null;
-
       allow create: if request.auth != null
                     && request.resource.data.hostId == request.auth.uid;
-
       allow update: if request.auth != null;
-
       allow delete: if request.auth != null
                     && resource.data.hostId == request.auth.uid;
 
@@ -43,13 +40,10 @@ service cloud.firestore {
       }
 
       // ── Music sync ───────────────────────────────────────────────────────────
-      // Only the host (room creator) can write music state;
-      // both users can read it so the partner can follow along.
+      // Both users can read and write music state — either can control playback
       match /music/{docId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null
-                     && get(/databases/$(database)/documents/rooms/$(roomId)).data.hostId
-                        == request.auth.uid;
+        allow read:  if request.auth != null;
+        allow write: if request.auth != null;
       }
     }
   }

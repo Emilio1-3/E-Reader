@@ -4,7 +4,7 @@ import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useApp } from "../App";
 import { useRoom } from "../Useroom";
-import { useSpotify } from "../Usespotify";
+import { useSpotify } from "../UseSpotify";
 import { getRoom, downloadPdfChunked, deleteRoom } from "../Db";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -493,7 +493,7 @@ function MusicSidebar({ isHost, spotify, onClose }) {
   const {
     token, login, logout,
     connecting, deviceId, playerState, musicSync,
-    playlists, error,
+    playlists, loadingPlaylists, error,
     playPlaylist, togglePlay, nextTrack, prevTrack, setVolume,
   } = spotify;
 
@@ -539,7 +539,7 @@ function MusicSidebar({ isHost, spotify, onClose }) {
       <div style={{ padding: "0.9rem 1.1rem", borderBottom: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0, background: "rgba(247,242,234,0.6)" }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><polyline points="12 18 12 8 21 6 21 16"/></svg>
         <span style={{ flex: 1, fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)" }}>
-          {isHost ? "Music · Host" : "Music · Listening"}
+          Music
         </span>
         {token && (
           <button onClick={logout}
@@ -564,7 +564,7 @@ function MusicSidebar({ isHost, spotify, onClose }) {
             <div>
               <p style={{ fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", marginBottom: "0.35rem" }}>Connect Spotify</p>
               <p style={{ fontSize: "0.78rem", color: "var(--ink-faint)", lineHeight: 1.6 }}>
-                {isHost ? "Connect to pick a playlist for both readers." : "Connect so you can follow along with the host's music."}
+                "Connect to listen together. Both readers can control playback."
               </p>
               <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", marginTop: "0.4rem", fontStyle: "italic" }}>Requires Spotify Premium</p>
             </div>
@@ -616,9 +616,8 @@ function MusicSidebar({ isHost, spotify, onClose }) {
                     </div>
                   )}
 
-                  {/* Controls — host only */}
-                  {isHost && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", marginBottom: "0.75rem" }}>
+                  {/* Controls — both users */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", marginBottom: "0.75rem" }}>
                       <button onClick={prevTrack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", padding: "0.25rem" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
                       </button>
@@ -633,15 +632,6 @@ function MusicSidebar({ isHost, spotify, onClose }) {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                       </button>
                     </div>
-                  )}
-
-                  {/* Partner view */}
-                  {!isHost && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", justifyContent: "center", marginBottom: "0.75rem" }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1DB954", animation: display.isPlaying ? "pulse 1.4s ease-in-out infinite" : "none" }} />
-                      <span style={{ fontSize: "0.72rem", color: "var(--ink-faint)" }}>{display.isPlaying ? "Synced with host" : "Paused by host"}</span>
-                    </div>
-                  )}
 
                   {/* Volume */}
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -656,15 +646,14 @@ function MusicSidebar({ isHost, spotify, onClose }) {
                 <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
                   <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🎵</div>
                   <p style={{ fontSize: "0.8rem", color: "var(--ink-faint)", fontStyle: "italic" }}>
-                    {isHost ? "Select a playlist to start" : "Waiting for host to start music…"}
+                    "Pick a playlist to start listening together"
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Playlist picker — host only */}
-            {isHost && (
-              <div style={{ flex: 1, overflowY: "auto" }}>
+            {/* Playlist picker — both users */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
                 <button onClick={() => setShowPlaylists(v => !v)}
                   style={{ width: "100%", padding: "0.75rem 1.1rem", background: "none", border: "none", borderBottom: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", color: "var(--ink-soft)", fontSize: "0.82rem", fontWeight: 600 }}>
                   <span>📋 Your Playlists</span>
@@ -673,7 +662,12 @@ function MusicSidebar({ isHost, spotify, onClose }) {
 
                 {showPlaylists && (
                   <div>
-                    {playlists.length === 0 ? (
+                    {loadingPlaylists ? (
+                      <div style={{ padding: "1.5rem", textAlign: "center" }}>
+                        <div style={{ width: 22, height: 22, border: "2px solid var(--paper-deep)", borderTopColor: "#1DB954", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 0.5rem" }} />
+                        <p style={{ fontSize: "0.75rem", color: "var(--ink-faint)" }}>Loading playlists…</p>
+                      </div>
+                    ) : playlists.length === 0 ? (
                       <p style={{ padding: "1rem", fontSize: "0.78rem", color: "var(--ink-faint)", textAlign: "center", fontStyle: "italic" }}>No playlists found</p>
                     ) : (
                       playlists.map(pl => (
@@ -696,7 +690,6 @@ function MusicSidebar({ isHost, spotify, onClose }) {
                   </div>
                 )}
               </div>
-            )}
           </>
         )}
       </div>
@@ -839,7 +832,6 @@ export default function ReaderPage() {
 
   const spotify = useSpotify({
     roomId,
-    isHost:      _amHost,
     clientId:    SPOTIFY_CLIENT_ID,
     redirectUri: SPOTIFY_REDIRECT,
   });
