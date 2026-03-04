@@ -4,16 +4,10 @@ import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useApp } from "../App";
 import { useRoom } from "../Useroom";
-import { useSpotify } from "../Usespotify";
-import { getRoom, downloadPdfChunked, deleteRoom } from "../Db";
+import { getRoom, downloadPdfChunked, deleteRoom, saveMusicState, subscribeMusicState } from "../Db";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-// ─── Spotify config ── set these in your .env ─────────────────────────────────
-// VITE_SPOTIFY_CLIENT_ID=your_client_id_here
-// VITE_SPOTIFY_REDIRECT=https://your-app.onrender.com/
-const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "";
-const SPOTIFY_REDIRECT  = import.meta.env.VITE_SPOTIFY_REDIRECT  || (typeof window !== "undefined" ? window.location.origin + "/" : "");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const timeAgo = (ts) => {
@@ -489,216 +483,302 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose }) {
 }
 
 // ─── Music Sidebar ────────────────────────────────────────────────────────────
-function MusicSidebar({ isHost, spotify, onClose }) {
-  const {
-    token, login, logout,
-    connecting, deviceId, playerState, musicSync,
-    playlists, loadingPlaylists, error,
-    playPlaylist, togglePlay, nextTrack, prevTrack, setVolume,
-  } = spotify;
+// ─── PKCE helpers (for Spotify OAuth) ────────────────────────────────────────
+function _b64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
+}
+async function _challenge(verifier) {
+  return _b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+}
+function _rand(n) {
+  const ch = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return Array.from(crypto.getRandomValues(new Uint8Array(n))).map(b=>ch[b%ch.length]).join("");
+}
 
-  const [volume,      setLocalVolume] = useState(0.6);
-  const [showPlaylists, setShowPlaylists] = useState(false);
+const SP_SCOPES = [
+  "user-read-currently-playing",
+  "user-read-playback-state",
+  "user-read-recently-played",
+].join(" ");
 
-  const handleVolume = (v) => {
-    setLocalVolume(v);
-    setVolume(v);
+// ── useSpotifyNowPlaying ──────────────────────────────────────────────────────
+// Polls /me/player every 5s, broadcasts track to Firestore when it changes.
+// Partner subscribes and mirrors the embed. No SDK, no Premium required.
+function useSpotifyNowPlaying({ roomId, clientId, redirectUri, onTrackChange }) {
+  const [token,      setToken]      = useState(() => sessionStorage.getItem("sp_np_token") || null);
+  const [nowPlaying, setNowPlaying] = useState(null);
+  const [error,      setError]      = useState(null);
+  const lastUriRef   = useRef(null);
+  const pollRef      = useRef(null);
+
+  // Handle OAuth redirect
+  useEffect(() => {
+    const params   = new URLSearchParams(window.location.search);
+    const code     = params.get("code");
+    const verifier = sessionStorage.getItem("sp_np_verifier");
+    if (!code || !verifier) return;
+    window.history.replaceState({}, "", window.location.pathname);
+
+    const clientIdVal = sessionStorage.getItem("sp_np_client_id") || clientId;
+    const redirectVal = sessionStorage.getItem("sp_np_redirect")  || redirectUri;
+
+    fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientIdVal, grant_type: "authorization_code",
+        code, redirect_uri: redirectVal, code_verifier: verifier,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.access_token) {
+          sessionStorage.setItem("sp_np_token", d.access_token);
+          if (d.refresh_token) sessionStorage.setItem("sp_np_refresh", d.refresh_token);
+          setToken(d.access_token);
+          setError(null);
+        } else {
+          setError(d.error_description || d.error || "Auth failed");
+        }
+        sessionStorage.removeItem("sp_np_verifier");
+      })
+      .catch(e => setError(e.message));
+  }, [clientId, redirectUri]);
+
+  // Refresh token helper
+  const refreshToken = useCallback(async () => {
+    const refresh = sessionStorage.getItem("sp_np_refresh");
+    const cid     = sessionStorage.getItem("sp_np_client_id") || clientId;
+    if (!refresh) return null;
+    const d = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refresh, client_id: cid }),
+    }).then(r => r.json());
+    if (d.access_token) {
+      sessionStorage.setItem("sp_np_token", d.access_token);
+      setToken(d.access_token);
+      return d.access_token;
+    }
+    return null;
+  }, [clientId]);
+
+  // Poll currently playing
+  useEffect(() => {
+    if (!token) return;
+
+    const poll = async (tk) => {
+      try {
+        const res = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+          headers: { Authorization: `Bearer ${tk}` },
+        });
+        if (res.status === 204) { setNowPlaying(null); return; }
+        if (res.status === 401) {
+          const newTk = await refreshToken();
+          if (newTk) poll(newTk);
+          return;
+        }
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.item) return;
+
+        const track = {
+          uri:        data.item.uri,
+          name:       data.item.name,
+          artist:     data.item.artists?.map(a => a.name).join(", ") || "",
+          albumArt:   data.item.album?.images?.[0]?.url || "",
+          albumName:  data.item.album?.name || "",
+          isPlaying:  data.is_playing,
+          progressMs: data.progress_ms || 0,
+          durationMs: data.item.duration_ms || 0,
+          contextUri: data.context?.uri || null,   // playlist/album context
+          embedUri:   data.context?.uri || data.item.uri,
+        };
+
+        setNowPlaying(track);
+
+        // Only broadcast when track actually changes
+        if (track.uri !== lastUriRef.current) {
+          lastUriRef.current = track.uri;
+          onTrackChange?.(track);
+        }
+      } catch (e) {
+        console.warn("Polling error:", e);
+      }
+    };
+
+    poll(token);
+    pollRef.current = setInterval(() => poll(token), 5000);
+    return () => clearInterval(pollRef.current);
+  }, [token, refreshToken]);
+
+  const login = useCallback(async () => {
+    const verifier   = _rand(64);
+    const challenge  = await _challenge(verifier);
+    sessionStorage.setItem("sp_np_verifier",   verifier);
+    sessionStorage.setItem("sp_np_client_id",  clientId);
+    sessionStorage.setItem("sp_np_redirect",   redirectUri);
+    // Use sp_code param so it doesn't collide with other OAuth flows
+    const params = new URLSearchParams({
+      client_id:             clientId,
+      response_type:         "code",
+      redirect_uri:          redirectUri,
+      scope:                 SP_SCOPES,
+      code_challenge_method: "S256",
+      code_challenge:        challenge,
+      state:                 "sp_np",
+    });
+    window.location.href = `https://accounts.spotify.com/authorize?${params}`;
+  }, [clientId, redirectUri]);
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem("sp_np_token");
+    sessionStorage.removeItem("sp_np_refresh");
+    setToken(null); setNowPlaying(null); lastUriRef.current = null;
+  }, []);
+
+  return { token, nowPlaying, error, login, logout };
+}
+
+// ─── Music Sidebar ────────────────────────────────────────────────────────────
+function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose }) {
+  const clientId   = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "";
+  const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT || window.location.origin + "/";
+
+  const { token, nowPlaying, error, login, logout } = useSpotifyNowPlaying({
+    roomId, clientId, redirectUri, onTrackChange,
+  });
+
+  // Build embed URL from the synced track
+  // Prefer context (playlist/album) so the embed shows the full list
+  const toEmbed = (track) => {
+    if (!track) return null;
+    const uri = track.contextUri || track.uri;
+    const parts = uri.split(":");
+    if (parts.length >= 3) {
+      return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}?utm_source=generator&theme=0`;
+    }
+    return null;
   };
 
-  // Determine what to display — host sees local playerState, partner sees synced musicSync
-  const display = isHost
-    ? playerState?.track_window?.current_track
-      ? {
-          name:      playerState.track_window.current_track.name,
-          artist:    playerState.track_window.current_track.artists?.[0]?.name || "",
-          albumArt:  playerState.track_window.current_track.album?.images?.[0]?.url || "",
-          isPlaying: !playerState.paused,
-          position:  playerState.position,
-          duration:  playerState.duration,
-        }
-      : null
-    : musicSync
-      ? {
-          name:      musicSync.trackName,
-          artist:    musicSync.artistName,
-          albumArt:  musicSync.albumArt,
-          isPlaying: musicSync.isPlaying,
-          position:  musicSync.position,
-          duration:  null,
-        }
-      : null;
+  const embedUrl = toEmbed(syncedTrack);
 
-  const progressPct = display?.duration
-    ? Math.min(100, (display.position / display.duration) * 100)
+  // Progress percentage for the currently playing track
+  const pct = nowPlaying?.durationMs
+    ? Math.min(100, (nowPlaying.progressMs / nowPlaying.durationMs) * 100)
     : 0;
 
   return (
-    <div className="chat-sidebar" style={{ width: 310, flexShrink: 0, background: "#fff", borderLeft: "1px solid var(--paper-deep)", display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+    <div className="chat-sidebar" style={{ width: 340, flexShrink: 0, background: "#121212", borderLeft: "1px solid #282828", display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
       {/* Header */}
-      <div style={{ padding: "0.9rem 1.1rem", borderBottom: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0, background: "rgba(247,242,234,0.6)" }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><polyline points="12 18 12 8 21 6 21 16"/></svg>
-        <span style={{ flex: 1, fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)" }}>
-          Music
-        </span>
+      <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #282828", display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        <span style={{ flex: 1, fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.9rem", color: "#fff" }}>Spotify</span>
         {token && (
-          <button onClick={logout}
-            style={{ fontSize: "0.62rem", color: "var(--ink-faint)", background: "none", border: "1px solid var(--paper-deep)", borderRadius: 6, padding: "2px 7px", cursor: "pointer" }}>
+          <button onClick={logout} style={{ fontSize: "0.62rem", color: "#b3b3b3", background: "none", border: "1px solid #404040", borderRadius: 6, padding: "2px 8px", cursor: "pointer" }}>
             Disconnect
           </button>
         )}
         <button onClick={onClose}
-          style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--paper)", border: "1.5px solid var(--paper-deep)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-faint)", fontSize: "0.8rem", cursor: "pointer" }}
-          onMouseOver={e => { e.currentTarget.style.background = "var(--ink)"; e.currentTarget.style.color = "#fff"; }}
-          onMouseOut={e => { e.currentTarget.style.background = "var(--paper)"; e.currentTarget.style.color = "var(--ink-faint)"; }}>✕</button>
+          style={{ width: 26, height: 26, borderRadius: "50%", background: "#282828", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "#b3b3b3", fontSize: "0.8rem", cursor: "pointer" }}
+          onMouseOver={e => { e.currentTarget.style.background = "#404040"; e.currentTarget.style.color = "#fff"; }}
+          onMouseOut={e => { e.currentTarget.style.background = "#282828"; e.currentTarget.style.color = "#b3b3b3"; }}>✕</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-
-        {/* Not connected */}
-        {!token && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", gap: "1rem", textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#1DB954", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,185,84,0.4)" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><polyline points="12 18 12 8 21 6 21 16"/></svg>
-            </div>
-            <div>
-              <p style={{ fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", marginBottom: "0.35rem" }}>Connect Spotify</p>
-              <p style={{ fontSize: "0.78rem", color: "var(--ink-faint)", lineHeight: 1.6 }}>
-                "Connect to listen together. Both readers can control playback."
+      {!token ? (
+        /* ── Not connected ── */
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", gap: "1.25rem", textAlign: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#1DB954", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(29,185,84,0.3)" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          </div>
+          <div>
+            <p style={{ color: "#fff", fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "1rem", marginBottom: "0.4rem" }}>Connect Spotify</p>
+            <p style={{ color: "#b3b3b3", fontSize: "0.8rem", lineHeight: 1.6 }}>
+              Connect once and whatever you play on Spotify — phone, desktop, anywhere — automatically syncs to your reading partner in real time.
+            </p>
+            {!clientId && (
+              <p style={{ color: "#e05c4a", fontSize: "0.72rem", marginTop: "0.5rem", background: "#2a1a1a", borderRadius: 8, padding: "0.4rem 0.7rem" }}>
+                ⚠️ Add VITE_SPOTIFY_CLIENT_ID to your .env file
               </p>
-              <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", marginTop: "0.4rem", fontStyle: "italic" }}>Requires Spotify Premium</p>
+            )}
+          </div>
+          {error && (
+            <p style={{ color: "#e05c4a", fontSize: "0.75rem", background: "#2a1a1a", borderRadius: 8, padding: "0.5rem 0.75rem" }}>⚠️ {error}</p>
+          )}
+          <button onClick={login} disabled={!clientId}
+            style={{ background: clientId ? "#1DB954" : "#404040", color: "#fff", border: "none", borderRadius: 100, padding: "0.75rem 2rem", fontWeight: 700, fontSize: "0.9rem", cursor: clientId ? "pointer" : "not-allowed", boxShadow: clientId ? "0 4px 20px rgba(29,185,84,0.4)" : "none", fontFamily: "'Lora', serif", transition: "all 0.2s" }}
+            onMouseOver={e => { if (clientId) e.currentTarget.style.transform = "scale(1.03)"; }}
+            onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}>
+            Connect with Spotify
+          </button>
+          {/* If partner is already playing something, show the embed anyway */}
+          {syncedTrack && embedUrl && (
+            <div style={{ width: "100%", marginTop: "0.5rem" }}>
+              <p style={{ color: "#b3b3b3", fontSize: "0.7rem", marginBottom: "0.5rem" }}>🎵 Your partner is listening to:</p>
+              <iframe src={embedUrl} width="100%" height="152" frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                style={{ borderRadius: 12 }} />
             </div>
-            <button onClick={login}
-              style={{ background: "#1DB954", color: "#fff", border: "none", borderRadius: 100, padding: "0.6rem 1.5rem", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", boxShadow: "0 4px 16px rgba(29,185,84,0.35)", fontFamily: "'Lora', serif" }}>
-              Connect with Spotify
-            </button>
-          </div>
-        )}
+          )}
+        </div>
+      ) : (
+        /* ── Connected ── */
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-        {/* Connected but no device yet */}
-        {token && connecting && !deviceId && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", padding: "2rem" }}>
-            <div style={{ width: 28, height: 28, border: "3px solid var(--paper-deep)", borderTopColor: "#1DB954", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            <p style={{ color: "var(--ink-faint)", fontSize: "0.82rem", fontStyle: "italic" }}>Connecting player…</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={{ margin: "0.75rem", padding: "0.75rem", background: "#fff5f5", border: "1px solid #fecaca", borderRadius: 10, fontSize: "0.78rem", color: "#c0392b" }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Connected + ready */}
-        {token && deviceId && (
-          <>
-            {/* Now Playing card */}
-            <div style={{ padding: "1.25rem 1.1rem 0.75rem", borderBottom: "1px solid var(--paper-deep)" }}>
-              {display ? (
-                <>
-                  {/* Album art */}
-                  <div style={{ width: "100%", aspectRatio: "1", borderRadius: 12, overflow: "hidden", marginBottom: "0.85rem", background: "var(--paper-mid)", boxShadow: "0 4px 24px rgba(26,18,8,0.12)" }}>
-                    {display.albumArt
-                      ? <img src={display.albumArt} alt="Album art" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.5rem" }}>🎵</div>
-                    }
-                  </div>
-
-                  {/* Track info */}
-                  <p style={{ fontFamily: "'Lora', serif", fontWeight: 700, fontSize: "0.92rem", color: "var(--ink)", marginBottom: "0.15rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display.name}</p>
-                  <p style={{ fontSize: "0.75rem", color: "var(--ink-faint)", marginBottom: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display.artist}</p>
-
-                  {/* Progress bar */}
-                  {display.duration && (
-                    <div style={{ height: 3, background: "var(--paper-deep)", borderRadius: 3, marginBottom: "0.85rem" }}>
-                      <div style={{ height: "100%", width: `${progressPct}%`, background: "#1DB954", borderRadius: 3, transition: "width 1s linear" }} />
-                    </div>
-                  )}
-
-                  {/* Controls — both users */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", marginBottom: "0.75rem" }}>
-                      <button onClick={prevTrack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", padding: "0.25rem" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-                      </button>
-                      <button onClick={togglePlay}
-                        style={{ width: 46, height: 46, borderRadius: "50%", background: display.isPlaying ? "var(--ink)" : "#1DB954", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 16px rgba(0,0,0,0.2)", transition: "all 0.18s" }}>
-                        {display.isPlaying
-                          ? <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                          : <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        }
-                      </button>
-                      <button onClick={nextTrack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", padding: "0.25rem" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-                      </button>
-                    </div>
-
-                  {/* Volume */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
-                    <input type="range" min="0" max="1" step="0.01" value={volume}
-                      onChange={e => handleVolume(parseFloat(e.target.value))}
-                      style={{ flex: 1, accentColor: "#1DB954", cursor: "pointer", height: 3 }} />
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                  </div>
-                </>
-              ) : (
-                <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🎵</div>
-                  <p style={{ fontSize: "0.8rem", color: "var(--ink-faint)", fontStyle: "italic" }}>
-                    "Pick a playlist to start listening together"
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Playlist picker — both users */}
-            <div style={{ flex: 1, overflowY: "auto" }}>
-                <button onClick={() => setShowPlaylists(v => !v)}
-                  style={{ width: "100%", padding: "0.75rem 1.1rem", background: "none", border: "none", borderBottom: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", color: "var(--ink-soft)", fontSize: "0.82rem", fontWeight: 600 }}>
-                  <span>📋 Your Playlists</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: showPlaylists ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-
-                {showPlaylists && (
-                  <div>
-                    {loadingPlaylists ? (
-                      <div style={{ padding: "1.5rem", textAlign: "center" }}>
-                        <div style={{ width: 22, height: 22, border: "2px solid var(--paper-deep)", borderTopColor: "#1DB954", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 0.5rem" }} />
-                        <p style={{ fontSize: "0.75rem", color: "var(--ink-faint)" }}>Loading playlists…</p>
-                      </div>
-                    ) : playlists.length === 0 ? (
-                      <p style={{ padding: "1rem", fontSize: "0.78rem", color: "var(--ink-faint)", textAlign: "center", fontStyle: "italic" }}>No playlists found</p>
-                    ) : (
-                      playlists.map(pl => (
-                        <button key={pl.id} onClick={() => playPlaylist(pl.uri)}
-                          style={{ width: "100%", padding: "0.6rem 1.1rem", background: "none", border: "none", borderBottom: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", gap: "0.65rem", cursor: "pointer", textAlign: "left" }}
-                          onMouseOver={e => e.currentTarget.style.background = "var(--paper-mid)"}
-                          onMouseOut={e => e.currentTarget.style.background = "none"}>
-                          {pl.images?.[0]?.url
-                            ? <img src={pl.images[0].url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
-                            : <div style={{ width: 36, height: 36, borderRadius: 6, background: "var(--paper-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1rem" }}>🎵</div>
-                          }
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pl.name}</p>
-                            <p style={{ fontSize: "0.65rem", color: "var(--ink-faint)" }}>{pl.tracks?.total ?? "?"} tracks</p>
-                          </div>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        </button>
-                      ))
-                    )}
-                  </div>
+          {/* Now playing card — what THIS user is playing, detected automatically */}
+          {nowPlaying ? (
+            <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #282828", flexShrink: 0 }}>
+              <p style={{ fontSize: "0.58rem", color: "#1DB954", fontWeight: 700, letterSpacing: "0.08em", marginBottom: "0.5rem" }}>
+                {nowPlaying.isPlaying ? "▶ NOW PLAYING — syncing to partner" : "⏸ PAUSED"}
+              </p>
+              <div style={{ display: "flex", gap: "0.65rem", alignItems: "center" }}>
+                {nowPlaying.albumArt && (
+                  <img src={nowPlaying.albumArt} alt="Album art" style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
                 )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nowPlaying.name}</p>
+                  <p style={{ color: "#b3b3b3", fontSize: "0.7rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nowPlaying.artist}</p>
+                </div>
+                {/* Live pulse dot */}
+                <div style={{ flexShrink: 0, display: "flex", gap: 2, alignItems: "flex-end" }}>
+                  {nowPlaying.isPlaying && [1,2,3].map(i => (
+                    <div key={i} style={{ width: 3, borderRadius: 2, background: "#1DB954", height: `${6 + i * 4}px`, animation: `bounce ${0.4 + i*0.15}s ${i*0.1}s ease-in-out infinite` }} />
+                  ))}
+                </div>
               </div>
-          </>
-        )}
-      </div>
+              {/* Progress bar */}
+              <div style={{ height: 2, background: "#404040", borderRadius: 2, marginTop: "0.6rem" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: "#1DB954", borderRadius: 2, transition: "width 5s linear" }} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #282828", flexShrink: 0 }}>
+              <p style={{ color: "#535353", fontSize: "0.78rem", fontStyle: "italic" }}>
+                🎵 Play anything on Spotify — it will appear here and sync automatically.
+              </p>
+            </div>
+          )}
 
-      {/* Spotify attribution */}
-      <div style={{ padding: "0.6rem", borderTop: "1px solid var(--paper-deep)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", flexShrink: 0 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-        <span style={{ fontSize: "0.62rem", color: "var(--ink-faint)" }}>Powered by Spotify</span>
-      </div>
+          {/* Embed — shows what's synced (from Firestore, i.e. what partner sees too) */}
+          {embedUrl ? (
+            <iframe src={embedUrl} width="100%" height="100%"
+              frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+              style={{ border: "none", flex: 1, minHeight: 0 }}
+            />
+          ) : (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", padding: "2rem", textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", animation: "floatBob 3s ease-in-out infinite" }}>🎵</div>
+              <p style={{ color: "#535353", fontSize: "0.82rem", lineHeight: 1.6 }}>
+                Open Spotify on any device and start playing.<br/>It will sync here automatically.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -765,6 +845,7 @@ export default function ReaderPage() {
   const [chapters,      setChapters]      = useState([]);
   const [tocOpen,       setTocOpen]       = useState(false);
   const [musicOpen,     setMusicOpen]     = useState(false);
+  const [musicSyncTrack, setMusicSyncTrack] = useState(null);
 
   // Load PDF + extract chapters
   useEffect(() => {
@@ -826,15 +907,8 @@ export default function ReaderPage() {
     myColor: color,
   });
 
-  // Determine host status early so useSpotify can use it
   const _hostId  = session?.hostId;
   const _amHost  = userId && _hostId && userId === _hostId;
-
-  const spotify = useSpotify({
-    roomId,
-    clientId:    SPOTIFY_CLIENT_ID,
-    redirectUri: SPOTIFY_REDIRECT,
-  });
 
   const [currentPage,  setCurrentPage]  = useState(1);
   const [chatOpen,     setChatOpen]     = useState(false);
@@ -884,6 +958,11 @@ export default function ReaderPage() {
     setSyncFlash(true);
     setTimeout(() => setSyncFlash(false), 2000);
   };
+
+  const handleTrackChange = useCallback((track) => {
+    if (!roomId) return;
+    saveMusicState(roomId, { ...track, sentAt: Date.now() }).catch(console.error);
+  }, [roomId]);
 
   const handleSend = useCallback((text) => {
     firebaseSend(text, currentPage - 1);
@@ -1048,7 +1127,7 @@ export default function ReaderPage() {
 
         {/* Music — right */}
         {musicOpen && (
-          <MusicSidebar isHost={amHost} spotify={spotify} onClose={() => setMusicOpen(false)} />
+          <MusicSidebar roomId={roomId} syncedTrack={musicSyncTrack} onTrackChange={handleTrackChange} onClose={() => setMusicOpen(false)} />
         )}
       </div>
 
@@ -1066,8 +1145,8 @@ export default function ReaderPage() {
         toast={toast}
         onDismissToast={() => setToast(null)}
         hasChapters={chapters.length > 0}
-        spotifyConnected={!!spotify.token && !!spotify.deviceId}
-        nowPlaying={!!(spotify.playerState && !spotify.playerState.paused) || !!(spotify.musicSync?.isPlaying)}
+        spotifyConnected={!!musicSyncTrack}
+        nowPlaying={!!musicSyncTrack?.isPlaying}
       />
     </div>
   );
