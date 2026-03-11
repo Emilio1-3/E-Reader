@@ -229,20 +229,22 @@ function PdfPage({ pdfDoc, pageNum }) {
 		};
 	}, [pdfDoc, pageNum]);
 
+	const isMobPage = typeof window !== 'undefined' && window.innerWidth <= 768;
+
 	return (
 		<div
 			style={{
 				display: 'flex',
 				justifyContent: 'center',
-				padding: 'clamp(0.5rem, 2vw, 1.5rem) clamp(4px, 2vw, 1rem) 7rem',
+				padding: isMobPage ? '6px 0 0 0' : '1.5rem 1.5rem 7rem',
 			}}>
 			<canvas
 				ref={canvasRef}
 				style={{
-					maxWidth: '100%',
 					display: 'block',
-					boxShadow: '0 4px 32px rgba(26,18,8,0.13)',
-					borderRadius: 4,
+					maxWidth: '100%',
+					boxShadow: isMobPage ? 'none' : '0 4px 32px rgba(26,18,8,0.13)',
+					borderRadius: isMobPage ? 0 : 4,
 				}}
 			/>
 		</div>
@@ -572,24 +574,41 @@ function MobileNavBar({
 					‹
 				</button>
 
-				{/* Spacer */}
-				<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+				{/* Centre section: page counter + action buttons */}
+				<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
+
+					{/* Page counter — most important, shown prominently */}
+					<div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', borderRadius: 10, padding: '4px 10px', flexShrink: 0 }}>
+						<span style={{ fontFamily: "'Lora', serif", fontWeight: 800, fontSize: '1rem', color: 'var(--ink)', lineHeight: 1 }}>
+							{currentPage + 1}
+						</span>
+						<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 500 }}>
+							/{totalPages}
+						</span>
+					</div>
+
+					{/* Divider */}
+					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
+
 					{/* Avatars */}
-					<div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-						<div style={{ width: 30, height: 30, borderRadius: '50%', background: me.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', color: '#fff', border: '2px solid rgba(247,242,234,1)', zIndex: 2 }}>
+					<div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+						<div style={{ width: 28, height: 28, borderRadius: '50%', background: me.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.7rem', color: '#fff', border: '2px solid rgba(247,242,234,1)', zIndex: 2 }}>
 							{me.name?.[0]?.toUpperCase()}
 						</div>
-						<div style={{ width: 30, height: 30, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', color: '#fff', border: '2px solid rgba(247,242,234,1)', marginLeft: -8, position: 'relative' }}>
+						<div style={{ width: 28, height: 28, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.7rem', color: '#fff', border: '2px solid rgba(247,242,234,1)', marginLeft: -7, position: 'relative' }}>
 							{(partner.name || '?')[0]?.toUpperCase()}
 							<div style={{ position: 'absolute', bottom: 0, right: 0, width: 7, height: 7, borderRadius: '50%', background: 'var(--sage)', border: '1.5px solid rgba(247,242,234,1)' }} />
 						</div>
 					</div>
 
+					{/* Divider */}
+					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
+
 					{/* TOC */}
 					{hasChapters && (
 						<button onClick={onOpenToc}
-							style={{ width: 38, height: 38, borderRadius: '50%', background: tocOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-mid)', border: tocOpen ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tocOpen ? '#fff' : 'var(--ink-soft)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+							style={{ width: 36, height: 36, borderRadius: '50%', background: tocOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-mid)', border: tocOpen ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={tocOpen ? '#fff' : 'var(--ink-soft)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
 								<path d="M4 6h16M4 12h16M4 18h10" />
 							</svg>
 						</button>
@@ -597,8 +616,8 @@ function MobileNavBar({
 
 					{/* Chat */}
 					<button onClick={onOpenChat}
-						style={{ width: 38, height: 38, borderRadius: '50%', background: chatOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, boxShadow: chatOpen ? '0 4px 18px rgba(194,120,58,0.4)' : '0 2px 8px rgba(26,18,8,0.2)' }}>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						style={{ width: 36, height: 36, borderRadius: '50%', background: chatOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, boxShadow: chatOpen ? '0 4px 18px rgba(194,120,58,0.4)' : '0 2px 8px rgba(26,18,8,0.2)' }}>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 						</svg>
 						{unreadCount > 0 && !chatOpen && (
@@ -610,8 +629,8 @@ function MobileNavBar({
 
 					{/* Music */}
 					<button onClick={onOpenMusic}
-						style={{ width: 38, height: 38, borderRadius: '50%', background: musicOpen ? 'linear-gradient(135deg, #1DB954, #17a348)' : spotifyConnected ? '#1DB954' : 'var(--paper-mid)', border: musicOpen || spotifyConnected ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: spotifyConnected ? '0 4px 16px rgba(29,185,84,0.35)' : 'none' }}>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill={musicOpen || spotifyConnected ? '#fff' : 'var(--ink-soft)'}>
+						style={{ width: 36, height: 36, borderRadius: '50%', background: musicOpen ? 'linear-gradient(135deg, #1DB954, #17a348)' : spotifyConnected ? '#1DB954' : 'var(--paper-mid)', border: musicOpen || spotifyConnected ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: spotifyConnected ? '0 4px 16px rgba(29,185,84,0.35)' : 'none' }}>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill={musicOpen || spotifyConnected ? '#fff' : 'var(--ink-soft)'}>
 							<path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
 						</svg>
 					</button>
@@ -1328,8 +1347,8 @@ export default function ReaderPage() {
 						style={{
 							flex: 1,
 							overflowY: 'auto',
-							// Extra bottom padding on mobile so content isn't hidden under nav bar
-							paddingBottom: isMobile ? `${mobileNavHeight + 16}px` : 0,
+							// Enough bottom padding so content clears the mobile nav bar (≈80px) + safe area
+							paddingBottom: isMobile ? 'calc(88px + env(safe-area-inset-bottom, 0px))' : 0,
 						}}>
 						{pdfLoading ? (
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
@@ -1422,6 +1441,13 @@ export default function ReaderPage() {
 				toast={toast} onDismissToast={() => setToast(null)}
 				hasChapters={chapters.length > 0} spotifyConnected={!!musicSyncTrack} nowPlaying={!!musicSyncTrack?.isPlaying}
 			/>
+
+			{/* Progress strip — mobile only, sits above the nav bar */}
+			{isMobile && totalPages > 0 && (
+				<div style={{ height: 2, background: 'var(--paper-deep)', flexShrink: 0 }}>
+					<div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--amber), var(--amber-glow))', transition: 'width 0.4s ease' }} />
+				</div>
+			)}
 
 			{/* Mobile bottom nav bar */}
 			<MobileNavBar
