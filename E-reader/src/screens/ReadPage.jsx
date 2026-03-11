@@ -549,6 +549,10 @@ function MobileNavBar({
 	toast, onDismissToast, hasChapters, spotifyConnected, nowPlaying,
 	onPrev, onNext, totalPages,
 }) {
+	// currentPage prop is 0-based; totalPages is the real total
+	const page1 = currentPage + 1; // 1-based for display & logic
+	const isFirst = page1 <= 1;
+	const isLast = totalPages > 0 && page1 >= totalPages;
 	const isSamePage = partnerPage === currentPage;
 
 	return (
@@ -573,10 +577,10 @@ function MobileNavBar({
 				</div>
 			)}
 
-			{/* "Reading together" pill */}
+			{/* "Reading together" pill — floats above bar, never affects layout */}
 			{isSamePage && (
-				<div style={{ textAlign: 'center', padding: '4px 0 0' }}>
-					<span className="toast-pop" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '2px 10px', fontSize: '0.62rem', fontWeight: 600 }}>
+				<div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, pointerEvents: 'none' }}>
+					<span className="toast-pop" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '3px 12px', fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(26,18,8,0.18)' }}>
 						📖 Reading together
 					</span>
 				</div>
@@ -588,8 +592,8 @@ function MobileNavBar({
 				<button
 					className="page-btn"
 					onClick={onPrev}
-					disabled={currentPage <= 0}
-					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${currentPage <= 0 ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage <= 0 ? 'transparent' : 'var(--ink)', color: currentPage <= 0 ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage <= 0 ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+					disabled={isFirst}
+					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isFirst ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isFirst ? 'transparent' : 'var(--ink)', color: isFirst ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isFirst ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
 					‹
 				</button>
 
@@ -599,10 +603,10 @@ function MobileNavBar({
 					{/* Page counter — most important, shown prominently */}
 					<div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', borderRadius: 10, padding: '4px 10px', flexShrink: 0 }}>
 						<span style={{ fontFamily: "'Lora', serif", fontWeight: 800, fontSize: '1rem', color: 'var(--ink)', lineHeight: 1 }}>
-							{currentPage + 1}
+							{page1}
 						</span>
 						<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 500 }}>
-							/{totalPages}
+							/{totalPages || '…'}
 						</span>
 					</div>
 
@@ -659,8 +663,8 @@ function MobileNavBar({
 				<button
 					className="page-btn"
 					onClick={onNext}
-					disabled={currentPage >= totalPages - 1}
-					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${currentPage >= totalPages - 1 ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage >= totalPages - 1 ? 'transparent' : 'var(--ink)', color: currentPage >= totalPages - 1 ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+					disabled={isLast}
+					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isLast ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isLast ? 'transparent' : 'var(--ink)', color: isLast ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLast ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
 					›
 				</button>
 			</div>
