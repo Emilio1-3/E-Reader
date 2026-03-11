@@ -191,14 +191,30 @@ function PdfPage({ pdfDoc, pageNum }) {
 			if (cancelled || !canvasRef.current) return;
 			const container = canvasRef.current.parentElement;
 			const isMob = window.innerWidth <= 768;
-			const containerWidth = container ? container.clientWidth - (isMob ? 8 : 48) : 680;
+
+			const containerWidth = container ? container.clientWidth : window.innerWidth;
+			// On mobile: fit the page to the visible area height (header ~48px + nav ~72px = ~120px used)
+			// so the full page is visible without needing to scroll
+			const availableHeight = isMob
+				? window.innerHeight - 48 - 74 // header + nav bar
+				: window.innerHeight - 48;
 
 			// devicePixelRatio makes text crisp on retina / high-DPI screens
 			const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
 			const baseVp = page.getViewport({ scale: 1 });
-			// CSS scale: fit page to container width
-			const cssScale = containerWidth / baseVp.width;
+
+			let cssScale;
+			if (isMob) {
+				// Fit by height first, but never exceed width
+				const scaleByHeight = availableHeight / baseVp.height;
+				const scaleByWidth = containerWidth / baseVp.width;
+				cssScale = Math.min(scaleByHeight, scaleByWidth);
+			} else {
+				// Desktop: fit to container width, capped
+				cssScale = Math.min((containerWidth - 48) / baseVp.width, 1.8);
+			}
+
 			// Physical scale: multiply by DPR so canvas pixels match screen pixels
 			const physicalScale = cssScale * dpr;
 
@@ -236,7 +252,10 @@ function PdfPage({ pdfDoc, pageNum }) {
 			style={{
 				display: 'flex',
 				justifyContent: 'center',
-				padding: isMobPage ? '6px 0 0 0' : '1.5rem 1.5rem 7rem',
+				alignItems: isMobPage ? 'flex-start' : 'flex-start',
+				padding: isMobPage ? '0' : '1.5rem 1.5rem 7rem',
+				// On mobile the wrapper fills the full scroll area
+				minHeight: isMobPage ? 'calc(100vh - 48px - 74px)' : 'auto',
 			}}>
 			<canvas
 				ref={canvasRef}
@@ -1347,8 +1366,6 @@ export default function ReaderPage() {
 						style={{
 							flex: 1,
 							overflowY: 'auto',
-							// Enough bottom padding so content clears the mobile nav bar (≈80px) + safe area
-							paddingBottom: isMobile ? 'calc(88px + env(safe-area-inset-bottom, 0px))' : 0,
 						}}>
 						{pdfLoading ? (
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
