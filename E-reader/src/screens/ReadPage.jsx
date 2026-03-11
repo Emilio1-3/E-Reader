@@ -190,17 +190,28 @@ function PdfPage({ pdfDoc, pageNum }) {
 		pdfDoc.getPage(pageNum).then((page) => {
 			if (cancelled || !canvasRef.current) return;
 			const container = canvasRef.current.parentElement;
-			// On mobile use nearly full width; on desktop cap at 680
 			const isMob = window.innerWidth <= 768;
-			const maxWidth = container
-				? container.clientWidth - (isMob ? 16 : 48)
-				: 680;
+			const containerWidth = container ? container.clientWidth - (isMob ? 8 : 48) : 680;
+
+			// devicePixelRatio makes text crisp on retina / high-DPI screens
+			const dpr = Math.min(window.devicePixelRatio || 1, 3);
+
 			const baseVp = page.getViewport({ scale: 1 });
-			const scale = Math.min(maxWidth / baseVp.width, isMob ? 3.0 : 2.0);
-			const vp = page.getViewport({ scale });
+			// CSS scale: fit page to container width
+			const cssScale = containerWidth / baseVp.width;
+			// Physical scale: multiply by DPR so canvas pixels match screen pixels
+			const physicalScale = cssScale * dpr;
+
+			const vp = page.getViewport({ scale: physicalScale });
 			const canvas = canvasRef.current;
+
+			// Canvas backing store = physical pixels
 			canvas.width = vp.width;
 			canvas.height = vp.height;
+			// CSS size = logical pixels (browser scales down, looks sharp)
+			canvas.style.width = `${vp.width / dpr}px`;
+			canvas.style.height = `${vp.height / dpr}px`;
+
 			const ctx = canvas.getContext('2d');
 			const task = page.render({ canvasContext: ctx, viewport: vp });
 			renderRef.current = task;
@@ -229,7 +240,7 @@ function PdfPage({ pdfDoc, pageNum }) {
 				ref={canvasRef}
 				style={{
 					maxWidth: '100%',
-					width: '100%',
+					display: 'block',
 					boxShadow: '0 4px 32px rgba(26,18,8,0.13)',
 					borderRadius: 4,
 				}}
