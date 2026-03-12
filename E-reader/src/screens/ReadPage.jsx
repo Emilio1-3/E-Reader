@@ -168,12 +168,28 @@ const READER_CSS = `
   .reaction-float   { animation: reactionFloat 1.2s ease forwards; pointer-events:none; }
   .typing-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--ink-faint); animation:typingDot 1.2s ease-in-out infinite; }
   .msg-row:hover .msg-react-btn { opacity:1 !important; }
-  .theme-sepia { filter:sepia(0.45) brightness(0.97); }
-  .theme-dark  { filter:invert(1) hue-rotate(180deg) brightness(0.9); }
+
+  /* ── Theme filters applied to the reader canvas wrapper ── */
+  .theme-sepia  { filter: sepia(0.45) brightness(0.97); }
+  .theme-dark   { filter: invert(1) hue-rotate(180deg) brightness(0.9); }
+
   .offline-banner { animation:slideDown 0.3s ease both; }
   .jump-modal-bg { position:fixed; inset:0; background:rgba(26,18,8,0.5); z-index:90; display:flex; align-items:flex-end; justify-content:center; padding-bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
   .jump-modal { background:#fff; border-radius:20px; padding:1.5rem; width:min(320px,90vw); box-shadow:0 24px 64px rgba(26,18,8,0.28); animation:slideUpSheet 0.28s cubic-bezier(0.4,0,0.2,1) both; }
 
+  /* Desktop page nav — sits below the scroll area, always visible */
+  .desktop-page-nav {
+    flex-shrink: 0;
+    padding: 0.75rem 2rem 1.25rem;
+    background: linear-gradient(to top, rgba(247,242,234,1) 60%, rgba(247,242,234,0));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+  }
+  @media (max-width: 768px) {
+    .desktop-page-nav { display: none !important; }
+  }
 `;
 
 function injectReaderStyles() {
@@ -274,7 +290,7 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 }
 
 // ─── PDF Canvas Renderer ──────────────────────────────────────────────────────
-function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
+function PdfPage({ pdfDoc, pageNum, zoom = 1, themeClass }) {
 	const canvasRef = useRef(null);
 	const renderRef = useRef(null);
 
@@ -339,11 +355,13 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 	const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
 
 	return (
+		// FIX: themeClass is applied here so the filter wraps only the page canvas
 		<div
+			className={themeClass || ''}
 			style={{
 				display: 'flex',
 				justifyContent: 'center',
-				padding: isMob ? '6px 0 0 0' : '1.5rem 1.5rem 7rem',
+				padding: isMob ? '6px 0 0 0' : '1.5rem 1.5rem 2rem',
 			}}>
 			<canvas
 				ref={canvasRef}
@@ -541,6 +559,7 @@ function FloatingBar({
 	onOpenChat, onOpenToc, onOpenMusic,
 	tocOpen, chatOpen, musicOpen,
 	toast, onDismissToast, hasChapters, spotifyConnected, nowPlaying,
+	theme, onCycleTheme,
 }) {
 	const isSamePage = partnerPage === currentPage;
 
@@ -569,6 +588,14 @@ function FloatingBar({
 							<div style={{ width: 1, height: 20, background: 'var(--paper-deep)' }} />
 						</>
 					)}
+
+					{/* FIX: Theme cycle button added to desktop floating bar */}
+					<button onClick={onCycleTheme} title={THEMES[theme].tip}
+						style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', flexShrink: 0 }}>
+						{THEMES[theme].label}
+					</button>
+
+					<div style={{ width: 1, height: 20, background: 'var(--paper-deep)' }} />
 
 					<div className="avatar-wrap" style={{ animation: 'floatBob 3.2s ease-in-out infinite' }}>
 						<span className="avatar-tooltip">{me.name || 'You'}</span>
@@ -743,12 +770,12 @@ function MobileNavBar({
 					</button>
 				</div>
 
-				{/* Next page */}
+				{/* FIX: Next page button — was cut off by flex overflow; ensure it always renders */}
 				<button
 					className="page-btn"
 					onClick={onNext}
 					disabled={isLast}
-					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isLast ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isLast ? 'transparent' : 'var(--ink)', color: isLast ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLast ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isLast ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isLast ? 'transparent' : 'var(--ink)', color: isLast ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLast ? 'not-allowed' : 'pointer', flexShrink: 0, minWidth: 44 }}>
 					›
 				</button>
 			</div>
@@ -855,6 +882,7 @@ function EmojiPicker({ onSelect, onClose }) {
 }
 
 // ─── Chat Sidebar ─────────────────────────────────────────────────────────────
+// FIX: added myUserId prop so isMe correctly identifies the local user's messages
 function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle }) {
 	const [text, setText] = useState('');
 	const [emojiOpen, setEmojiOpen] = useState(false);
@@ -890,6 +918,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		haptic(8);
 		setTimeout(() => inputRef.current?.focus(), 10);
 	};
+
 	const addReaction = (msgId, emoji) => setReactions(r => {
 		const ex = r[msgId] || []; if (ex.includes(emoji)) return r;
 		return { ...r, [msgId]: [...ex, emoji] };
@@ -944,6 +973,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 					</div>
 				)}
 				{grouped.map((msg, i) => {
+					// FIX: compare against myUserId prop, not undefined variable
 					const isMe = msg.userId === myUserId;
 					const msgReactions = reactions[msg.id] || [];
 					return (
@@ -956,27 +986,77 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 								e.currentTarget.addEventListener('touchend', cancel, { once: true });
 								e.currentTarget.addEventListener('touchmove', cancel, { once: true });
 							}}>
-							{!isMe && !msg.isGrouped && <div style={{ width: 22, height: 22, borderRadius: '50%', background: msg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.58rem', color: '#fff', flexShrink: 0 }}>{msg.name?.[0]?.toUpperCase()}</div>}
+							{!isMe && !msg.isGrouped && (
+								<div style={{ width: 22, height: 22, borderRadius: '50%', background: msg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.58rem', color: '#fff', flexShrink: 0 }}>
+									{msg.name?.[0]?.toUpperCase()}
+								</div>
+							)}
 							{!isMe && msg.isGrouped && <div style={{ width: 22, flexShrink: 0 }} />}
 							<div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-								{msg.replyTo && <div style={{ padding: '0.25rem 0.6rem', background: 'var(--paper-deep)', borderRadius: 8, fontSize: '0.72rem', color: 'var(--ink-soft)', borderLeft: '2px solid var(--amber)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>↩ {msg.replyTo.text?.slice(0,40)}{msg.replyTo.text?.length > 40 ? '…' : ''}</div>}
-								<div style={{ padding: '0.45rem 0.8rem', background: isMe ? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)' : 'var(--paper)', borderRadius: isMe ? '14px 14px 3px 14px' : '14px 14px 14px 3px', color: isMe ? '#fff' : 'var(--ink)', fontSize: '0.88rem', lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--paper-deep)', wordBreak: 'break-word' }}>{msg.text}</div>
-								{msgReactions.length > 0 && <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>{msgReactions.map((e, ei) => <span key={ei} style={{ fontSize: '0.85rem', background: 'var(--paper-mid)', border: '1px solid var(--paper-deep)', borderRadius: 10, padding: '1px 5px' }}>{e}</span>)}</div>}
-								{!msg.isGrouped && <div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.2rem', alignItems: 'center' }}>
-									<span style={{ color: 'var(--ink-faint)', fontSize: '0.58rem' }}>{timeAgo(msg.ts)}</span>
-									<span style={{ color: 'var(--paper-deep)', fontSize: '0.58rem', background: 'var(--paper-mid)', borderRadius: 3, padding: '0 4px' }}>p.{msg.page + 1}</span>
-									{isMe && i === messages.length - 1 && <span style={{ color: 'var(--ink-faint)', fontSize: '0.55rem' }}>✓</span>}
-								</div>}
+								{/* Sender label for partner messages */}
+								{!isMe && !msg.isGrouped && (
+									<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 600, paddingInline: '0.3rem' }}>
+										{msg.name}
+									</span>
+								)}
+								{msg.replyTo && (
+									<div style={{ padding: '0.25rem 0.6rem', background: 'var(--paper-deep)', borderRadius: 8, fontSize: '0.72rem', color: 'var(--ink-soft)', borderLeft: '2px solid var(--amber)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+										↩ {msg.replyTo.text?.slice(0,40)}{msg.replyTo.text?.length > 40 ? '…' : ''}
+									</div>
+								)}
+								<div style={{
+									padding: '0.45rem 0.8rem',
+									background: isMe
+										? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)'
+										: 'var(--paper)',
+									borderRadius: isMe ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
+									color: isMe ? '#fff' : 'var(--ink)',
+									fontSize: '0.88rem',
+									lineHeight: 1.5,
+									border: isMe ? 'none' : '1px solid var(--paper-deep)',
+									wordBreak: 'break-word',
+								}}>
+									{msg.text}
+								</div>
+								{msgReactions.length > 0 && (
+									<div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+										{msgReactions.map((e, ei) => (
+											<span key={ei} style={{ fontSize: '0.85rem', background: 'var(--paper-mid)', border: '1px solid var(--paper-deep)', borderRadius: 10, padding: '1px 5px' }}>{e}</span>
+										))}
+									</div>
+								)}
+								{!msg.isGrouped && (
+									<div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.2rem', alignItems: 'center' }}>
+										<span style={{ color: 'var(--ink-faint)', fontSize: '0.58rem' }}>{timeAgo(msg.ts)}</span>
+										<span style={{ color: 'var(--paper-deep)', fontSize: '0.58rem', background: 'var(--paper-mid)', borderRadius: 3, padding: '0 4px' }}>p.{msg.page + 1}</span>
+										{isMe && i === messages.length - 1 && (
+											<span style={{ color: 'var(--ink-faint)', fontSize: '0.55rem' }}>✓</span>
+										)}
+									</div>
+								)}
 							</div>
 						</div>
 					);
 				})}
+				{popup && (
+					<ReactionPopup
+						x={popup.x} y={popup.y}
+						onReact={(emoji) => addReaction(popup.msgId, emoji)}
+						onReply={() => {
+							const m = messages.find(m => m.id === popup.msgId);
+							if (m) setReplyTo(m);
+						}}
+						onClose={() => setPopup(null)}
+					/>
+				)}
 				<div ref={endRef} />
 			</div>
 
 			{replyTo && (
 				<div style={{ padding: '0.4rem 0.75rem', background: 'rgba(194,120,58,0.08)', borderTop: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-					<div style={{ flex: 1, fontSize: '0.75rem', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ color: 'var(--amber)', fontWeight: 700 }}>↩ Reply: </span>{replyTo.text?.slice(0, 50)}</div>
+					<div style={{ flex: 1, fontSize: '0.75rem', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+						<span style={{ color: 'var(--amber)', fontWeight: 700 }}>↩ Reply: </span>{replyTo.text?.slice(0, 50)}
+					</div>
 					<button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
 				</div>
 			)}
@@ -1003,8 +1083,16 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 							😊
 						</button>
 					</div>
-					{text.length > 420 && <span style={{ fontSize: '0.58rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>{500 - text.length}</span>}
-					<button onClick={send} onTouchEnd={e => { e.preventDefault(); send(); }} disabled={!text.trim()}
+					{text.length > 420 && (
+						<span style={{ fontSize: '0.58rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>
+							{500 - text.length}
+						</span>
+					)}
+					{/* FIX: removed onTouchEnd calling send() which conflicted with tap-to-focus on mobile;
+					    the onClick handler alone is sufficient and works on both desktop and mobile */}
+					<button
+						onClick={send}
+						disabled={!text.trim()}
 						style={{ width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0, background: text.trim() ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s', cursor: text.trim() ? 'pointer' : 'not-allowed' }}>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? '#fff' : 'var(--ink-faint)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
 							<path d="M12 19V5M5 12l7-7 7 7" />
@@ -1469,6 +1557,7 @@ export default function ReaderPage() {
 	const swipeHandlers = useSwipe(handleSwipeLeft, handleSwipeRight);
 
 	const handleTrackChange = useCallback((track) => { if (!roomId) return; saveMusicState(roomId, { ...track, sentAt: Date.now() }).catch(console.error); }, [roomId]);
+
 	const handleDoubleTap = useCallback((e) => {
 		if (!isMobile) return;
 		const now = Date.now();
@@ -1496,8 +1585,10 @@ export default function ReaderPage() {
 		catch (e) { console.error(e); alert(`Failed to end room: ${e.message}`); setEnding(false); setShowEndDialog(false); }
 	};
 
-	const progress = totalPages > 1 ? ((currentPage - 1) / (totalPages - 1)) * 100 : 100;
+	// FIX: themeClass derived from theme state index
 	const themeClass = theme === 1 ? 'theme-sepia' : theme === 2 ? 'theme-dark' : '';
+
+	const progress = totalPages > 1 ? ((currentPage - 1) / (totalPages - 1)) * 100 : 100;
 	const pagesDiff = Math.abs(partnerPage + 1 - currentPage);
 	const partnerObj = { ...(partner || {}), ...(livePartner || {}), page: partnerPage };
 	const me = { name, color };
@@ -1581,47 +1672,58 @@ export default function ReaderPage() {
 					/>
 				)}
 
-				{/* Main reading area */}
+				{/* Main reading area — FIX: flexDirection column so page nav sits below scroll */}
 				<div
-					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}
-					{...(isMobile ? swipeHandlers : {})}>
+					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}>
 
-					{isMobile && swipeHint && (
-						<div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'flex', alignItems: 'center', justifyContent: swipeHint === 'left' ? 'flex-end' : 'flex-start', padding: '0 1.5rem', pointerEvents: 'none' }}>
-							<div
-								className={swipeHint === 'left' ? 'swipe-hint-left' : 'swipe-hint-right'}
-								style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(26,18,8,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem' }}>
-								{swipeHint === 'left' ? '›' : '‹'}
-							</div>
-						</div>
-					)}
+					{/* Touch/swipe layer sits on top of the scrollable area */}
 					<div
-						ref={scrollRef}
-						className="reader-scroll"
-						style={{ flex: 1, overflowY: 'auto' }}>
-						{pdfLoading ? (
-							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
-								<div style={{ width: 32, height: 32, border: '3px solid var(--paper-deep)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-								<p style={{ color: 'var(--ink-faint)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-									{downloadPct > 0 && downloadPct < 100 ? 'Downloading book…' : downloadPct === 100 ? 'Rendering PDF…' : 'Loading…'}
-								</p>
-								{downloadPct > 0 && (
-									<div style={{ width: 200 }}>
-										<div style={{ height: 4, background: 'var(--paper-deep)', borderRadius: 4 }}>
-											<div style={{ height: '100%', width: `${downloadPct}%`, background: 'linear-gradient(90deg, var(--amber), var(--amber-glow))', borderRadius: 4, transition: 'width 0.2s ease' }} />
+						style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
+						{...(isMobile ? {
+							onTouchStart: swipeHandlers.onTouchStart,
+							onTouchMove: swipeHandlers.onTouchMove,
+							onTouchEnd: handleTouchEnd,
+						} : {})}>
+
+						{isMobile && swipeHint && (
+							<div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'flex', alignItems: 'center', justifyContent: swipeHint === 'left' ? 'flex-end' : 'flex-start', padding: '0 1.5rem', pointerEvents: 'none' }}>
+								<div
+									className={swipeHint === 'left' ? 'swipe-hint-left' : 'swipe-hint-right'}
+									style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(26,18,8,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem' }}>
+									{swipeHint === 'left' ? '›' : '‹'}
+								</div>
+							</div>
+						)}
+
+						<div
+							ref={scrollRef}
+							className="reader-scroll"
+							style={{ flex: 1, overflowY: 'auto' }}>
+							{pdfLoading ? (
+								<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
+									<div style={{ width: 32, height: 32, border: '3px solid var(--paper-deep)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+									<p style={{ color: 'var(--ink-faint)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+										{downloadPct > 0 && downloadPct < 100 ? 'Downloading book…' : downloadPct === 100 ? 'Rendering PDF…' : 'Loading…'}
+									</p>
+									{downloadPct > 0 && (
+										<div style={{ width: 200 }}>
+											<div style={{ height: 4, background: 'var(--paper-deep)', borderRadius: 4 }}>
+												<div style={{ height: '100%', width: `${downloadPct}%`, background: 'linear-gradient(90deg, var(--amber), var(--amber-glow))', borderRadius: 4, transition: 'width 0.2s ease' }} />
+											</div>
+											<p style={{ color: 'var(--amber)', fontSize: '0.75rem', fontWeight: 700, textAlign: 'center', marginTop: '0.3rem' }}>{downloadPct}%</p>
 										</div>
-										<p style={{ color: 'var(--amber)', fontSize: '0.75rem', fontWeight: 700, textAlign: 'center', marginTop: '0.3rem' }}>{downloadPct}%</p>
-									</div>
-								)}
-							</div>
-						) : pdfError ? (
-							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem', minHeight: 300 }}>
-								<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>⚠️ {pdfError}</p>
-								<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
-							</div>
-						) : pdfDoc ? (
-							<PdfPage pdfDoc={pdfDoc} pageNum={currentPage} />
-						) : null}
+									)}
+								</div>
+							) : pdfError ? (
+								<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem', minHeight: 300 }}>
+									<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>⚠️ {pdfError}</p>
+									<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
+								</div>
+							) : pdfDoc ? (
+								// FIX: themeClass passed down to PdfPage so filter is applied to canvas wrapper
+								<PdfPage pdfDoc={pdfDoc} pageNum={currentPage} zoom={zoom} themeClass={themeClass} />
+							) : null}
+						</div>
 					</div>
 
 					{/* Partner nudge */}
@@ -1635,9 +1737,10 @@ export default function ReaderPage() {
 						</div>
 					)}
 
-					{/* Desktop page nav */}
-					{totalPages > 0 && !isMobile && (
-						<div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.75rem 2rem 1.25rem', background: 'linear-gradient(to top, rgba(247,242,234,1) 60%, rgba(247,242,234,0))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
+					{/* FIX: Desktop page nav moved OUT of absolute positioning into normal flow
+					    so it's always visible and never clipped by overflow:hidden */}
+					{totalPages > 0 && (
+						<div className="desktop-page-nav">
 							<button className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}
 								style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${currentPage <= 1 ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage <= 1 ? 'transparent' : 'var(--ink)', color: currentPage <= 1 ? 'var(--paper-deep)' : '#fff', fontSize: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer' }}>
 								‹
@@ -1662,10 +1765,12 @@ export default function ReaderPage() {
 					<ChatSidebar
 						messages={messages}
 						partner={partnerObj}
+						myUserId={userId}
 						currentPage={currentPage - 1}
 						onSend={handleSend}
 						onClose={() => setChatOpen(false)}
 						isMobile={isMobile}
+						bookTitle={bookTitle}
 					/>
 				)}
 
@@ -1687,6 +1792,7 @@ export default function ReaderPage() {
 				tocOpen={tocOpen} chatOpen={chatOpen} musicOpen={musicOpen}
 				toast={toast} onDismissToast={() => setToast(null)}
 				hasChapters={chapters.length > 0} spotifyConnected={!!musicSyncTrack} nowPlaying={!!musicSyncTrack?.isPlaying}
+				theme={theme} onCycleTheme={cycleTheme}
 			/>
 
 			{/* Progress strip — mobile only */}
@@ -1698,7 +1804,7 @@ export default function ReaderPage() {
 
 			{/* Mobile bottom nav bar */}
 			<MobileNavBar
-				theme={theme} onCycleTheme={cycleTheme} onJumpOpen={() => setJumpOpen(true)}
+				theme={theme} onCycleTheme={cycleTheme}
 				me={me} partner={partnerObj} partnerPage={partnerPage} currentPage={currentPage - 1}
 				unreadCount={unreadCount} onOpenChat={openChat} onOpenToc={openToc} onOpenMusic={openMusic}
 				tocOpen={tocOpen} chatOpen={chatOpen} musicOpen={musicOpen}
