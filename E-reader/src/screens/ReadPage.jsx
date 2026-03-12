@@ -162,12 +162,31 @@ const READER_CSS = `
   @keyframes pageTurnRight { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
   @keyframes slideDown     { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
   @keyframes reactionFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-70px) scale(1.5)} }
-  @keyframes typingDot     { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+  @keyframes typingDot     { 0%,60%,100%{transform:translateY(0);opacity:0.35} 30%{transform:translateY(-5px);opacity:1} }
+  @keyframes swipeReplyHint{ 0%{transform:translateX(0)} 40%{transform:translateX(22px)} 100%{transform:translateX(0)} }
+  @keyframes tickPop       { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
   .page-turn-left   { animation: pageTurnLeft  0.22s ease both; }
   .page-turn-right  { animation: pageTurnRight 0.22s ease both; }
   .reaction-float   { animation: reactionFloat 1.2s ease forwards; pointer-events:none; }
-  .typing-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--ink-faint); animation:typingDot 1.2s ease-in-out infinite; }
-  .msg-row:hover .msg-react-btn { opacity:1 !important; }
+  .typing-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ink-faint); animation:typingDot 1.3s ease-in-out infinite; }
+  .typing-dot:nth-child(2){ animation-delay:0.18s; }
+  .typing-dot:nth-child(3){ animation-delay:0.36s; }
+  /* message row hover actions */
+  .msg-row { position:relative; }
+  .msg-actions { opacity:0; transition:opacity 0.15s ease; pointer-events:none; }
+  .msg-row:hover .msg-actions,
+  .msg-actions.visible { opacity:1; pointer-events:auto; }
+  /* swipe-to-reply */
+  .swipe-reply-anim { animation: swipeReplyHint 0.32s ease both; }
+  /* read ticks */
+  .tick-read { color:#1DB954 !important; animation: tickPop 0.25s ease both; }
+  /* reaction pills */
+  .reaction-pill { display:inline-flex; align-items:center; gap:3px; font-size:0.8rem; line-height:1; background:var(--paper-mid); border:1.5px solid var(--paper-deep); border-radius:20px; padding:2px 8px; cursor:pointer; transition:border-color 0.15s, transform 0.12s, background 0.15s; user-select:none; }
+  .reaction-pill:hover { border-color:var(--amber); transform:scale(1.1); }
+  .reaction-pill.mine  { border-color:var(--amber); background:rgba(194,120,58,0.1); }
+  /* chat sidebar responsive */
+  .chat-sidebar-wrap { width:320px; flex-shrink:0; background:#fff; border-left:1px solid var(--paper-deep); display:flex; flex-direction:column; height:100%; overflow:hidden; }
+  @media (max-width:520px){ .chat-sidebar-wrap{ width:100vw; border-left:none; } }
 
   /* ── Theme filters applied to the reader canvas wrapper ── */
   .theme-sepia  { filter: sepia(0.45) brightness(0.97); }
@@ -881,21 +900,269 @@ function EmojiPicker({ onSelect, onClose }) {
 	);
 }
 
+// ─── SwipeableMessage ─────────────────────────────────────────────────────────
+// Individual message row with swipe-right-to-reply on touch
+function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions, onReply, onReact, onContextMenu, partnerColor }) {
+	const [swipeDx, setSwipeDx] = useState(0);
+	const [hinted, setHinted] = useState(false);
+	const swipeStartX = useRef(null);
+	const swipeStartY = useRef(null);
+	const didTrigger = useRef(false);
+	const rowRef = useRef();
+
+	// touch swipe-right triggers reply
+	const onTS = (e) => {
+		if (e.touches.length !== 1) return;
+		swipeStartX.current = e.touches[0].clientX;
+		swipeStartY.current = e.touches[0].clientY;
+		didTrigger.current = false;
+	};
+	const onTM = (e) => {
+		if (swipeStartX.current === null) return;
+		const dx = e.touches[0].clientX - swipeStartX.current;
+		const dy = e.touches[0].clientY - swipeStartY.current;
+		if (Math.abs(dy) > Math.abs(dx) * 1.2) { swipeStartX.current = null; return; }
+		if (dx > 0 && dx < 90) {
+			e.preventDefault();
+			setSwipeDx(dx * 0.55);
+			if (dx > 52 && !didTrigger.current) {
+				didTrigger.current = true;
+				haptic(12);
+				setHinted(true);
+				setTimeout(() => setHinted(false), 400);
+			}
+		}
+	};
+	const onTE = () => {
+		swipeStartX.current = null;
+		if (didTrigger.current) { onReply(msg); }
+		setSwipeDx(0);
+	};
+
+	const msgReactions = reactions[msg.id] || {};
+	const isGrouped = msg.isGrouped;
+	// determine read: partner has read if last message from me is read
+	const isRead = isMe && isLast && msg.readBy && Object.keys(msg.readBy).some(id => id !== myUserId);
+
+	return (
+		<div
+			ref={rowRef}
+			className="msg-bubble msg-row"
+			style={{ display: 'flex', gap: '0.4rem', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: isGrouped ? 2 : 8, position: 'relative' }}
+			onContextMenu={onContextMenu}
+			onTouchStart={onTS}
+			onTouchMove={onTM}
+			onTouchEnd={onTE}>
+
+			{/* Reply-swipe indicator arrow */}
+			<div style={{
+				position: 'absolute',
+				[isMe ? 'right' : 'left']: isMe ? 'calc(100% + 4px)' : 'calc(100% + 4px)',
+				top: '50%', transform: 'translateY(-50%)',
+				width: 28, height: 28, borderRadius: '50%',
+				background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)',
+				display: 'flex', alignItems: 'center', justifyContent: 'center',
+				opacity: Math.min(swipeDx / 45, 1),
+				transition: swipeDx === 0 ? 'opacity 0.2s' : 'none',
+				pointerEvents: 'none', zIndex: 1,
+			}}>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+					<polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+				</svg>
+			</div>
+
+			{/* Avatar */}
+			{!isMe && !isGrouped && (
+				<div style={{ width: 26, height: 26, borderRadius: '50%', background: msg.color || partnerColor || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.62rem', color: '#fff', flexShrink: 0, alignSelf: 'flex-end' }}>
+					{msg.name?.[0]?.toUpperCase()}
+				</div>
+			)}
+			{!isMe && isGrouped && <div style={{ width: 26, flexShrink: 0 }} />}
+
+			{/* Bubble column */}
+			<div
+				style={{
+					maxWidth: '75%',
+					display: 'flex', flexDirection: 'column', gap: 3,
+					alignItems: isMe ? 'flex-end' : 'flex-start',
+					transform: `translateX(${isMe ? -swipeDx : swipeDx}px)`,
+					transition: swipeDx === 0 ? 'transform 0.22s ease' : 'none',
+				}}>
+				{/* Reply preview */}
+				{msg.replyTo && (
+					<div style={{
+						padding: '0.28rem 0.65rem',
+						background: isMe ? 'rgba(255,255,255,0.18)' : 'var(--paper-deep)',
+						borderRadius: 9,
+						fontSize: '0.72rem',
+						color: isMe ? 'rgba(255,255,255,0.85)' : 'var(--ink-soft)',
+						borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.6)' : 'var(--amber)'}`,
+						maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+						cursor: 'default',
+					}}>
+						↩ <strong style={{ color: isMe ? '#fff' : 'var(--amber)', fontWeight: 700 }}>
+							{msg.replyTo.userId === myUserId ? 'You' : msg.replyTo.name}
+						</strong>{' '}{msg.replyTo.text?.slice(0, 45)}{msg.replyTo.text?.length > 45 ? '…' : ''}
+					</div>
+				)}
+
+				{/* Main bubble + hover actions */}
+				<div style={{ display: 'flex', alignItems: 'center', gap: 5, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+					{/* Bubble */}
+					<div style={{
+						padding: '0.52rem 0.88rem',
+						background: isMe
+							? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)'
+							: 'var(--paper)',
+						borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+						color: isMe ? '#fff' : 'var(--ink)',
+						fontSize: '0.9rem',
+						lineHeight: 1.55,
+						border: isMe ? 'none' : '1px solid var(--paper-deep)',
+						wordBreak: 'break-word',
+						boxShadow: isMe
+							? '0 2px 10px rgba(194,120,58,0.22)'
+							: '0 1px 4px rgba(26,18,8,0.07)',
+					}}>
+						{msg.text}
+					</div>
+
+					{/* Hover quick-react & reply (desktop) */}
+					<div className="msg-actions" style={{ display: 'flex', gap: 3, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+						<button
+							onClick={() => onReply(msg)}
+							title="Reply"
+							style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}
+							onMouseOver={e => { e.currentTarget.style.background = 'var(--paper-deep)'; }}
+							onMouseOut={e => { e.currentTarget.style.background = 'var(--paper-mid)'; }}>
+							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+								<polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+							</svg>
+						</button>
+						{QUICK_REACTIONS.slice(0,3).map(em => (
+							<button key={em} onClick={() => onReact(msg.id, em)}
+								title={em}
+								style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', cursor: 'pointer', transition: 'transform 0.12s' }}
+								onMouseOver={e => e.currentTarget.style.transform='scale(1.2)'}
+								onMouseOut={e => e.currentTarget.style.transform='scale(1)'}>
+								{em}
+							</button>
+						))}
+					</div>
+				</div>
+
+				{/* Reaction pills */}
+				{Object.keys(msgReactions).length > 0 && (
+					<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+						{Object.entries(msgReactions).map(([emoji, data]) => {
+							const iMine = data.users?.includes(myUserId);
+							const count = data.count || 1;
+							return (
+								<button
+									key={emoji}
+									className={`reaction-pill${iMine ? ' mine' : ''}`}
+									onClick={() => onReact(msg.id, emoji)}
+									title={iMine ? 'Remove reaction' : 'React'}>
+									<span>{emoji}</span>
+									{count > 1 && <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--ink-soft)' }}>{count}</span>}
+								</button>
+							);
+						})}
+					</div>
+				)}
+
+				{/* Timestamp + read receipt */}
+				{!isGrouped && (
+					<div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.25rem', alignItems: 'center' }}>
+						<span style={{ color: 'var(--ink-faint)', fontSize: '0.6rem' }}>{timeAgo(msg.ts)}</span>
+						<span style={{ color: 'var(--paper-deep)', fontSize: '0.6rem', background: 'var(--paper-mid)', borderRadius: 4, padding: '0 4px' }}>p.{(msg.page ?? 0) + 1}</span>
+						{isMe && isLast && (
+							<span className={isRead ? 'tick-read' : 'tick-sent'} style={{ fontSize: '0.7rem', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 1 }} title={isRead ? 'Seen' : 'Sent'}>
+								{isRead ? (
+									/* double-tick for read */
+									<svg width="14" height="10" viewBox="0 0 20 12" fill="none">
+										<path d="M1 6l4 4L13 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+										<path d="M7 6l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								) : (
+									/* single tick for sent */
+									<svg width="11" height="10" viewBox="0 0 14 12" fill="none">
+										<path d="M1 6l4 4L13 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								)}
+							</span>
+						)}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+// ─── Typing Indicator Bubble ─────────────────────────────────────────────────
+function TypingBubble({ partner }) {
+	return (
+		<div className="msg-bubble" style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+			<div style={{ width: 26, height: 26, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.62rem', color: '#fff', flexShrink: 0 }}>
+				{(partner.name || '?')[0]?.toUpperCase()}
+			</div>
+			<div style={{ padding: '0.55rem 0.9rem', background: 'var(--paper)', border: '1px solid var(--paper-deep)', borderRadius: '18px 18px 18px 4px', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 1px 4px rgba(26,18,8,0.07)' }}>
+				<span className="typing-dot" />
+				<span className="typing-dot" />
+				<span className="typing-dot" />
+			</div>
+		</div>
+	);
+}
+
 // ─── Chat Sidebar ─────────────────────────────────────────────────────────────
-// FIX: added myUserId prop so isMe correctly identifies the local user's messages
 function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle }) {
 	const [text, setText] = useState('');
 	const [emojiOpen, setEmojiOpen] = useState(false);
 	const [replyTo, setReplyTo] = useState(null);
+	// reactions: { [msgId]: { [emoji]: { count, users: [userId] } } }
 	const [reactions, setReactions] = useState({});
 	const [popup, setPopup] = useState(null);
 	const [inputOffset, setInputOffset] = useState(0);
+	// partnerTyping: true when partner is actively typing (simulated via last-message heuristic)
+	const [partnerTyping, setPartnerTyping] = useState(false);
+	// readUpTo: id of last message read by partner (locally tracked)
+	const [readUpTo, setReadUpTo] = useState(null);
 	const endRef = useRef();
 	const inputRef = useRef();
+	const typingTimer = useRef(null);
+	const prevPartnerMsgCount = useRef(0);
 
-	useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+	// Auto-scroll to bottom on new messages
+	useEffect(() => {
+		endRef.current?.scrollIntoView({ behavior: 'smooth' });
+	}, [messages, partnerTyping]);
+
+	// Focus input when opened
 	useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80); }, []);
 
+	// Simulate partner "typing" 1-2s before their new message appears
+	// In a real app this would come from a Firebase presence field
+	useEffect(() => {
+		const partnerMsgs = messages.filter(m => m.userId !== myUserId);
+		if (partnerMsgs.length > prevPartnerMsgCount.current) {
+			setPartnerTyping(false);
+			// Mark their latest message as "read" since we're in the chat
+			const last = partnerMsgs[partnerMsgs.length - 1];
+			if (last) setReadUpTo(last.id);
+		}
+		prevPartnerMsgCount.current = partnerMsgs.length;
+	}, [messages, myUserId]);
+
+	// Mark partner messages read when sidebar is open
+	useEffect(() => {
+		const partnerMsgs = messages.filter(m => m.userId !== myUserId);
+		if (partnerMsgs.length > 0) {
+			setReadUpTo(partnerMsgs[partnerMsgs.length - 1].id);
+		}
+	}, [messages, myUserId]);
+
+	// Keyboard offset on mobile
 	useEffect(() => {
 		if (!isMobile || !window.visualViewport) return;
 		const h = () => setInputOffset(Math.max(0, window.innerHeight - window.visualViewport.height - 10));
@@ -904,6 +1171,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		return () => { window.visualViewport.removeEventListener('resize', h); window.visualViewport.removeEventListener('scroll', h); };
 	}, [isMobile]);
 
+	// Auto-grow textarea
 	useEffect(() => {
 		const el = inputRef.current; if (!el) return;
 		el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -919,10 +1187,30 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		setTimeout(() => inputRef.current?.focus(), 10);
 	};
 
-	const addReaction = (msgId, emoji) => setReactions(r => {
-		const ex = r[msgId] || []; if (ex.includes(emoji)) return r;
-		return { ...r, [msgId]: [...ex, emoji] };
-	});
+	const handleTextChange = (e) => {
+		setText(e.target.value);
+		// Briefly show "typing" indicator for self (not shown to self, but signals partner)
+		// In a real app, you'd write to Firebase here
+	};
+
+	const toggleReaction = (msgId, emoji) => {
+		setReactions(r => {
+			const msgR = { ...(r[msgId] || {}) };
+			const existing = msgR[emoji] || { count: 0, users: [] };
+			const alreadyReacted = existing.users.includes(myUserId);
+			if (alreadyReacted) {
+				const users = existing.users.filter(u => u !== myUserId);
+				if (users.length === 0) {
+					const next = { ...msgR }; delete next[emoji]; return { ...r, [msgId]: next };
+				}
+				return { ...r, [msgId]: { ...msgR, [emoji]: { count: users.length, users } } };
+			} else {
+				const users = [...existing.users, myUserId];
+				return { ...r, [msgId]: { ...msgR, [emoji]: { count: users.length, users } } };
+			}
+		});
+		haptic(5);
+	};
 
 	const grouped = messages.map((msg, i) => {
 		const prev = messages[i - 1];
@@ -931,7 +1219,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 
 	const insertEmoji = (emoji) => {
 		const el = inputRef.current;
-		if (!el) { setText((t) => t + emoji); return; }
+		if (!el) { setText(t => t + emoji); return; }
 		const start = el.selectionStart ?? text.length;
 		const end = el.selectionEnd ?? text.length;
 		const next = text.slice(0, start) + emoji + text.slice(end);
@@ -939,109 +1227,86 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); });
 	};
 
+	const myMessages = grouped.filter(m => m.userId === myUserId);
+	const lastMyMsgId = myMessages.length > 0 ? myMessages[myMessages.length - 1].id : null;
+
 	const inner = (
-		<div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: isMobile ? inputOffset : 0 }}>
+		<div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: isMobile ? inputOffset : 0, minHeight: 0 }}>
 			{isMobile && <div className="sheet-handle" />}
-			{/* Header */}
-			<div style={{ padding: '0.9rem 1.1rem', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, background: 'rgba(247,242,234,0.6)' }}>
-				<div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-					<div style={{ width: 32, height: 32, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#fff' }}>
+
+			{/* ── Header ── */}
+			<div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, background: 'rgba(247,242,234,0.8)', backdropFilter: 'blur(10px)' }}>
+				<div style={{ position: 'relative', flexShrink: 0 }}>
+					<div style={{ width: 36, height: 36, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>
 						{(partner.name || '?')[0]?.toUpperCase()}
 					</div>
-					<div>
-						<p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.2 }}>{partner.name || 'Partner'}</p>
-						<p style={{ fontSize: '0.64rem', color: 'var(--sage)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-							<span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
-							Online · Page {(partner.page ?? 0) + 1}
-						</p>
-					</div>
+					<div style={{ position: 'absolute', bottom: 1, right: 1, width: 9, height: 9, borderRadius: '50%', background: 'var(--sage)', border: '2px solid rgba(247,242,234,1)' }} />
+				</div>
+				<div style={{ flex: 1, minWidth: 0 }}>
+					<p style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name || 'Partner'}</p>
+					<p style={{ fontSize: '0.65rem', color: 'var(--sage)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+						<span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite', flexShrink: 0 }} />
+						{partnerTyping ? <em>typing…</em> : `Online · p.${(partner.page ?? 0) + 1}`}
+					</p>
 				</div>
 				<button onClick={onClose}
-					style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.85rem', cursor: 'pointer' }}
-					onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
-					onMouseOut={(e) => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
+					style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.85rem', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
+					onMouseOver={e => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
+					onMouseOut={e => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
 					✕
 				</button>
 			</div>
 
-			{/* Messages */}
-			<div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+			{/* ── Swipe hint (first load) ── */}
+			{messages.length > 0 && messages.length < 3 && (
+				<div style={{ padding: '0.4rem 1rem', background: 'rgba(194,120,58,0.06)', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+					<span style={{ fontSize: '0.9rem' }}>👈</span>
+					<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Swipe a message right to reply · long-press to react</span>
+				</div>
+			)}
+
+			{/* ── Messages ── */}
+			<div
+				className="chat-scroll"
+				style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', minHeight: 0 }}>
 				{messages.length === 0 && (
-					<div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-						<div style={{ fontSize: '2rem', marginBottom: '0.75rem', animation: 'floatBob 3s ease-in-out infinite' }}>✍️</div>
-						<p style={{ color: 'var(--ink-faint)', fontSize: '0.82rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.6 }}>Start the conversation…</p>
+					<div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', textAlign: 'center', gap: '0.75rem' }}>
+						<div style={{ fontSize: '2.2rem', animation: 'floatBob 3s ease-in-out infinite' }}>✍️</div>
+						<p style={{ color: 'var(--ink-faint)', fontSize: '0.83rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.7, maxWidth: 200 }}>
+							Start the conversation…<br />
+							<span style={{ fontSize: '0.7rem' }}>Swipe a message right to reply</span>
+						</p>
 					</div>
 				)}
+
 				{grouped.map((msg, i) => {
-					// FIX: compare against myUserId prop, not undefined variable
 					const isMe = msg.userId === myUserId;
-					const msgReactions = reactions[msg.id] || [];
+					const isLastMsg = i === grouped.length - 1;
+					const isLastMine = msg.id === lastMyMsgId;
 					return (
-						<div key={msg.id} className="msg-bubble msg-row"
-							style={{ display: 'flex', gap: '0.35rem', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: msg.isGrouped ? 1 : 6 }}
+						<SwipeableMessage
+							key={msg.id}
+							msg={msg}
+							isMe={isMe}
+							isLast={isLastMine}
+							myUserId={myUserId}
+							allMessages={messages}
+							reactions={reactions}
+							partnerColor={partner.color}
+							onReply={setReplyTo}
+							onReact={toggleReaction}
 							onContextMenu={e => { e.preventDefault(); setPopup({ msgId: msg.id, x: e.clientX, y: e.clientY }); }}
-							onTouchStart={e => {
-								const timer = setTimeout(() => { const t = e.touches[0]; setPopup({ msgId: msg.id, x: t.clientX, y: t.clientY }); haptic(14); }, 480);
-								const cancel = () => clearTimeout(timer);
-								e.currentTarget.addEventListener('touchend', cancel, { once: true });
-								e.currentTarget.addEventListener('touchmove', cancel, { once: true });
-							}}>
-							{!isMe && !msg.isGrouped && (
-								<div style={{ width: 22, height: 22, borderRadius: '50%', background: msg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.58rem', color: '#fff', flexShrink: 0 }}>
-									{msg.name?.[0]?.toUpperCase()}
-								</div>
-							)}
-							{!isMe && msg.isGrouped && <div style={{ width: 22, flexShrink: 0 }} />}
-							<div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-								{/* Sender label for partner messages */}
-								{!isMe && !msg.isGrouped && (
-									<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 600, paddingInline: '0.3rem' }}>
-										{msg.name}
-									</span>
-								)}
-								{msg.replyTo && (
-									<div style={{ padding: '0.25rem 0.6rem', background: 'var(--paper-deep)', borderRadius: 8, fontSize: '0.72rem', color: 'var(--ink-soft)', borderLeft: '2px solid var(--amber)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-										↩ {msg.replyTo.text?.slice(0,40)}{msg.replyTo.text?.length > 40 ? '…' : ''}
-									</div>
-								)}
-								<div style={{
-									padding: '0.45rem 0.8rem',
-									background: isMe
-										? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)'
-										: 'var(--paper)',
-									borderRadius: isMe ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
-									color: isMe ? '#fff' : 'var(--ink)',
-									fontSize: '0.88rem',
-									lineHeight: 1.5,
-									border: isMe ? 'none' : '1px solid var(--paper-deep)',
-									wordBreak: 'break-word',
-								}}>
-									{msg.text}
-								</div>
-								{msgReactions.length > 0 && (
-									<div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-										{msgReactions.map((e, ei) => (
-											<span key={ei} style={{ fontSize: '0.85rem', background: 'var(--paper-mid)', border: '1px solid var(--paper-deep)', borderRadius: 10, padding: '1px 5px' }}>{e}</span>
-										))}
-									</div>
-								)}
-								{!msg.isGrouped && (
-									<div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.2rem', alignItems: 'center' }}>
-										<span style={{ color: 'var(--ink-faint)', fontSize: '0.58rem' }}>{timeAgo(msg.ts)}</span>
-										<span style={{ color: 'var(--paper-deep)', fontSize: '0.58rem', background: 'var(--paper-mid)', borderRadius: 3, padding: '0 4px' }}>p.{msg.page + 1}</span>
-										{isMe && i === messages.length - 1 && (
-											<span style={{ color: 'var(--ink-faint)', fontSize: '0.55rem' }}>✓</span>
-										)}
-									</div>
-								)}
-							</div>
-						</div>
+						/>
 					);
 				})}
+
+				{/* Typing indicator */}
+				{partnerTyping && <TypingBubble partner={partner} />}
+
 				{popup && (
 					<ReactionPopup
 						x={popup.x} y={popup.y}
-						onReact={(emoji) => addReaction(popup.msgId, emoji)}
+						onReact={emoji => toggleReaction(popup.msgId, emoji)}
 						onReply={() => {
 							const m = messages.find(m => m.id === popup.msgId);
 							if (m) setReplyTo(m);
@@ -1052,54 +1317,66 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 				<div ref={endRef} />
 			</div>
 
+			{/* ── Reply preview bar ── */}
 			{replyTo && (
-				<div style={{ padding: '0.4rem 0.75rem', background: 'rgba(194,120,58,0.08)', borderTop: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-					<div style={{ flex: 1, fontSize: '0.75rem', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-						<span style={{ color: 'var(--amber)', fontWeight: 700 }}>↩ Reply: </span>{replyTo.text?.slice(0, 50)}
+				<div style={{ padding: '0.45rem 0.85rem', background: 'rgba(194,120,58,0.07)', borderTop: '2px solid var(--amber)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+					<div style={{ width: 3, alignSelf: 'stretch', background: 'var(--amber)', borderRadius: 3, flexShrink: 0 }} />
+					<div style={{ flex: 1, minWidth: 0 }}>
+						<p style={{ fontSize: '0.65rem', color: 'var(--amber)', fontWeight: 700, marginBottom: 1 }}>
+							{replyTo.userId === myUserId ? 'Reply to yourself' : `Reply to ${replyTo.name}`}
+						</p>
+						<p style={{ fontSize: '0.78rem', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+							{replyTo.text?.slice(0, 60)}{replyTo.text?.length > 60 ? '…' : ''}
+						</p>
 					</div>
-					<button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+					<button onClick={() => setReplyTo(null)}
+						style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--paper-deep)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.72rem', cursor: 'pointer', flexShrink: 0 }}>
+						✕
+					</button>
 				</div>
 			)}
 
-			{/* Input */}
-			<div style={{ padding: '0.6rem', borderTop: '1px solid var(--paper-deep)', flexShrink: 0, background: '#fff' }}>
+			{/* ── Input ── */}
+			<div style={{ padding: '0.55rem 0.7rem', borderTop: '1px solid var(--paper-deep)', flexShrink: 0, background: '#fff' }}>
 				<div
-					style={{ position: 'relative', display: 'flex', gap: '0.4rem', alignItems: 'flex-end', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', borderRadius: 14, padding: '0.45rem 0.45rem 0.45rem 0.85rem', transition: 'border-color 0.2s' }}
-					onFocusCapture={(e) => (e.currentTarget.style.borderColor = 'var(--amber)')}
-					onBlurCapture={(e) => { if (!emojiOpen) e.currentTarget.style.borderColor = 'var(--paper-deep)'; }}>
+					style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', borderRadius: 16, padding: '0.4rem 0.4rem 0.4rem 0.85rem', transition: 'border-color 0.2s, box-shadow 0.2s' }}
+					onFocusCapture={e => { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(194,120,58,0.1)'; }}
+					onBlurCapture={e => { if (!emojiOpen) { e.currentTarget.style.borderColor = 'var(--paper-deep)'; e.currentTarget.style.boxShadow = 'none'; } }}>
 					<textarea
 						ref={inputRef}
 						value={text}
-						onChange={(e) => setText(e.target.value)}
-						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+						onChange={handleTextChange}
+						onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
 						placeholder={`Message ${partner.name || 'partner'}…`}
 						rows={1}
-						style={{ flex: 1, background: 'transparent', resize: 'none', color: 'var(--ink)', fontSize: '0.875rem', lineHeight: 1.5, fontFamily: "'Lora', serif", maxHeight: 100, overflowY: 'auto', outline: 'none', border: 'none' }}
+						style={{ flex: 1, background: 'transparent', resize: 'none', color: 'var(--ink)', fontSize: '0.9rem', lineHeight: 1.5, fontFamily: "'Lora', serif", maxHeight: 110, overflowY: 'auto', outline: 'none', border: 'none', paddingTop: 2 }}
 					/>
 					<div style={{ position: 'relative', flexShrink: 0 }}>
 						{emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={() => setEmojiOpen(false)} />}
-						<button onClick={() => setEmojiOpen((v) => !v)} title="Emoji"
-							style={{ width: 30, height: 30, borderRadius: 9, border: 'none', background: emojiOpen ? 'var(--paper-deep)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', transition: 'background 0.15s' }}>
+						<button
+							onClick={() => setEmojiOpen(v => !v)}
+							title="Emoji"
+							style={{ width: 32, height: 32, borderRadius: 10, border: 'none', background: emojiOpen ? 'var(--paper-deep)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1.05rem', transition: 'background 0.15s', flexShrink: 0 }}>
 							😊
 						</button>
 					</div>
 					{text.length > 420 && (
-						<span style={{ fontSize: '0.58rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>
+						<span style={{ fontSize: '0.6rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>
 							{500 - text.length}
 						</span>
 					)}
-					{/* FIX: removed onTouchEnd calling send() which conflicted with tap-to-focus on mobile;
-					    the onClick handler alone is sufficient and works on both desktop and mobile */}
 					<button
 						onClick={send}
 						disabled={!text.trim()}
-						style={{ width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0, background: text.trim() ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s', cursor: text.trim() ? 'pointer' : 'not-allowed' }}>
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? '#fff' : 'var(--ink-faint)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
+						style={{ width: 34, height: 34, borderRadius: 11, border: 'none', flexShrink: 0, background: text.trim() ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s', cursor: text.trim() ? 'pointer' : 'not-allowed', boxShadow: text.trim() ? '0 2px 10px rgba(194,120,58,0.35)' : 'none' }}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? '#fff' : 'var(--ink-faint)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
 							<path d="M12 19V5M5 12l7-7 7 7" />
 						</svg>
 					</button>
 				</div>
-				<p style={{ color: 'var(--ink-faint)', fontSize: '0.62rem', textAlign: 'center', marginTop: '0.3rem' }}>Enter to send · Shift+Enter for new line</p>
+				<p style={{ color: 'var(--ink-faint)', fontSize: '0.6rem', textAlign: 'center', marginTop: '0.3rem' }}>
+					Enter to send · Shift+Enter for new line
+				</p>
 			</div>
 		</div>
 	);
@@ -1108,7 +1385,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		return (
 			<>
 				<div className="sheet-backdrop" onClick={onClose} />
-				<div className="side-sheet light-sheet bottom-sheet" style={{ maxHeight: '90vh' }}>
+				<div className="side-sheet light-sheet bottom-sheet" style={{ maxHeight: '92vh' }}>
 					{inner}
 				</div>
 			</>
@@ -1116,7 +1393,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 	}
 
 	return (
-		<div className="chat-sidebar sidebar-desktop" style={{ width: 310, flexShrink: 0, background: '#fff', borderLeft: '1px solid var(--paper-deep)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+		<div className="chat-sidebar chat-sidebar-wrap sidebar-desktop">
 			{inner}
 		</div>
 	);
