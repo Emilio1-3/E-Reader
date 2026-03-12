@@ -78,7 +78,10 @@ const READER_CSS = `
   @keyframes spSpin { to { transform:rotate(360deg); } }
   @keyframes spPulse { 0%,100%{box-shadow:0 0 0 0 rgba(29,185,84,0.4);} 50%{box-shadow:0 0 0 14px rgba(29,185,84,0);} }
 
-  /* ── Mobile bottom nav bar ── */
+  @keyframes swipeHintLeft  { 0%{opacity:0;transform:translateX(0)} 20%{opacity:1;transform:translateX(-18px)} 80%{opacity:1;transform:translateX(-18px)} 100%{opacity:0;transform:translateX(-32px)} }
+  @keyframes swipeHintRight { 0%{opacity:0;transform:translateX(0)} 20%{opacity:1;transform:translateX(18px)} 80%{opacity:1;transform:translateX(18px)} 100%{opacity:0;transform:translateX(32px)} }
+  .swipe-hint-left  { animation: swipeHintLeft  0.45s ease both; pointer-events:none; }
+  .swipe-hint-right { animation: swipeHintRight 0.45s ease both; pointer-events:none; }
   .mobile-nav-bar {
     display: none;
   }
@@ -172,6 +175,46 @@ function useIsMobile() {
 		return () => window.removeEventListener('resize', handler);
 	}, []);
 	return isMobile;
+}
+
+// ─── Swipe hook ───────────────────────────────────────────────────────────────
+function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 } = {}) {
+	const startX = useRef(null);
+	const startY = useRef(null);
+	const swiping = useRef(false);
+
+	const onTouchStart = useCallback((e) => {
+		// Ignore multi-touch
+		if (e.touches.length !== 1) return;
+		startX.current = e.touches[0].clientX;
+		startY.current = e.touches[0].clientY;
+		swiping.current = true;
+	}, []);
+
+	const onTouchEnd = useCallback((e) => {
+		if (!swiping.current || startX.current === null) return;
+		swiping.current = false;
+		const dx = e.changedTouches[0].clientX - startX.current;
+		const dy = e.changedTouches[0].clientY - startY.current;
+		// Ignore if mostly vertical (user is scrolling)
+		if (Math.abs(dy) > maxVertical) return;
+		if (Math.abs(dx) < threshold) return;
+		if (dx < 0) onSwipeLeft?.();   // swipe left  → next page
+		else         onSwipeRight?.();  // swipe right → prev page
+		startX.current = null;
+	}, [onSwipeLeft, onSwipeRight, threshold, maxVertical]);
+
+	const onTouchMove = useCallback((e) => {
+		if (!swiping.current || startX.current === null) return;
+		const dx = e.touches[0].clientX - startX.current;
+		const dy = e.touches[0].clientY - startY.current;
+		// If vertical movement dominates early, cancel swipe tracking
+		if (Math.abs(dy) > Math.abs(dx) * 1.5 && Math.abs(dy) > 20) {
+			swiping.current = false;
+		}
+	}, []);
+
+	return { onTouchStart, onTouchEnd, onTouchMove };
 }
 
 // ─── PDF Canvas Renderer ──────────────────────────────────────────────────────
@@ -1231,6 +1274,7 @@ export default function ReaderPage() {
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [toast, setToast] = useState(null);
 	const [syncFlash, setSyncFlash] = useState(false);
+	const [swipeHint, setSwipeHint] = useState(null); // 'left' | 'right' | null
 	const prevMsgCount = useRef(0);
 	const scrollRef = useRef();
 	const restoredRef = useRef(false);
@@ -1262,6 +1306,22 @@ export default function ReaderPage() {
 	}, [totalPages, savePage]);
 
 	const syncToPartner = () => { goToPage(partnerPage + 1); setSyncFlash(true); setTimeout(() => setSyncFlash(false), 2000); };
+
+	const handleSwipeLeft = useCallback(() => {
+		if (!isMobile || totalPages === 0) return;
+		goToPage(currentPage + 1);
+		setSwipeHint('left');
+		setTimeout(() => setSwipeHint(null), 500);
+	}, [isMobile, totalPages, currentPage, goToPage]);
+
+	const handleSwipeRight = useCallback(() => {
+		if (!isMobile || totalPages === 0) return;
+		goToPage(currentPage - 1);
+		setSwipeHint('right');
+		setTimeout(() => setSwipeHint(null), 500);
+	}, [isMobile, totalPages, currentPage, goToPage]);
+
+	const swipeHandlers = useSwipe(handleSwipeLeft, handleSwipeRight);
 
 	const handleTrackChange = useCallback((track) => { if (!roomId) return; saveMusicState(roomId, { ...track, sentAt: Date.now() }).catch(console.error); }, [roomId]);
 	const handleSend = useCallback((text) => { firebaseSend(text, currentPage - 1); }, [firebaseSend, currentPage]);
@@ -1363,7 +1423,20 @@ export default function ReaderPage() {
 				)}
 
 				{/* Main reading area */}
-				<div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}>
+				<div
+					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}
+					{...(isMobile ? swipeHandlers : {})}>
+
+					{/* Swipe direction flash — mobile only */}
+					{isMobile && swipeHint && (
+						<div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'flex', alignItems: 'center', justifyContent: swipeHint === 'left' ? 'flex-end' : 'flex-start', padding: '0 1.5rem', pointerEvents: 'none' }}>
+							<div
+								className={swipeHint === 'left' ? 'swipe-hint-left' : 'swipe-hint-right'}
+								style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(26,18,8,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem' }}>
+								{swipeHint === 'left' ? '›' : '‹'}
+							</div>
+						</div>
+					)}
 					<div
 						ref={scrollRef}
 						className="reader-scroll"
