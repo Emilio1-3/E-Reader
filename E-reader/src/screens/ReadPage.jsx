@@ -14,7 +14,7 @@ import {
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-// \u2500\u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const haptic = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
 
 const timeAgo = (ts) => {
@@ -25,7 +25,7 @@ const timeAgo = (ts) => {
 	return `${Math.floor(d / 3600)}h ago`;
 };
 
-// \u2500\u2500\u2500 CSS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const READER_CSS = `
   @keyframes slideRight  { from { opacity:0; transform:translateX(100%); } to { opacity:1; transform:translateX(0); } }
   @keyframes slideLeft   { from { opacity:0; transform:translateX(-100%); } to { opacity:1; transform:translateX(0); } }
@@ -184,7 +184,7 @@ function injectReaderStyles() {
 	document.head.appendChild(s);
 }
 
-// \u2500\u2500\u2500 Hook: detect mobile \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Hook: detect mobile ──────────────────────────────────────────────────────
 function useIsMobile() {
 	const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
 	useEffect(() => {
@@ -194,8 +194,6 @@ function useIsMobile() {
 	}, []);
 	return isMobile;
 }
-
-// \u2500\u2500\u2500 Swipe hook \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 // ─── Hook: online status ─────────────────────────────────────────────────────
 function useOnline() {
@@ -245,7 +243,6 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 	const swiping = useRef(false);
 
 	const onTouchStart = useCallback((e) => {
-		// Ignore multi-touch
 		if (e.touches.length !== 1) return;
 		startX.current = e.touches[0].clientX;
 		startY.current = e.touches[0].clientY;
@@ -257,11 +254,10 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 		swiping.current = false;
 		const dx = e.changedTouches[0].clientX - startX.current;
 		const dy = e.changedTouches[0].clientY - startY.current;
-		// Ignore if mostly vertical (user is scrolling)
 		if (Math.abs(dy) > maxVertical) return;
 		if (Math.abs(dx) < threshold) return;
-		if (dx < 0) onSwipeLeft?.();   // swipe left  \u2192 next page
-		else         onSwipeRight?.();  // swipe right \u2192 prev page
+		if (dx < 0) onSwipeLeft?.();
+		else         onSwipeRight?.();
 		startX.current = null;
 	}, [onSwipeLeft, onSwipeRight, threshold, maxVertical]);
 
@@ -269,7 +265,6 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 		if (!swiping.current || startX.current === null) return;
 		const dx = e.touches[0].clientX - startX.current;
 		const dy = e.touches[0].clientY - startY.current;
-		// If vertical movement dominates early, cancel swipe tracking
 		if (Math.abs(dy) > Math.abs(dx) * 1.5 && Math.abs(dy) > 20) {
 			swiping.current = false;
 		}
@@ -278,7 +273,7 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 	return { onTouchStart, onTouchEnd, onTouchMove };
 }
 
-// \u2500\u2500\u2500 PDF Canvas Renderer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── PDF Canvas Renderer ──────────────────────────────────────────────────────
 function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 	const canvasRef = useRef(null);
 	const renderRef = useRef(null);
@@ -297,38 +292,30 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 			const isMob = window.innerWidth <= 768;
 
 			const containerWidth = container ? container.clientWidth : window.innerWidth;
-			// On mobile: fit the page to the visible area height (header ~48px + nav ~72px = ~120px used)
-			// so the full page is visible without needing to scroll
 			const availableHeight = isMob
-				? window.innerHeight - 48 - 74 // header + nav bar
+				? window.innerHeight - 48 - 74
 				: window.innerHeight - 48;
 
-			// devicePixelRatio makes text crisp on retina / high-DPI screens
 			const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
 			const baseVp = page.getViewport({ scale: 1 });
 
 			let cssScale;
 			if (isMob) {
-				// Fit by height first, but never exceed width
 				const scaleByHeight = availableHeight / baseVp.height;
 				const scaleByWidth = containerWidth / baseVp.width;
 				cssScale = Math.min(scaleByHeight, scaleByWidth) * zoom;
 			} else {
-				// Desktop: fit to container width, capped
 				cssScale = Math.min((containerWidth - 48) / baseVp.width, 1.8) * zoom;
 			}
 
-			// Physical scale: multiply by DPR so canvas pixels match screen pixels
 			const physicalScale = cssScale * dpr;
 
 			const vp = page.getViewport({ scale: physicalScale });
 			const canvas = canvasRef.current;
 
-			// Canvas backing store = physical pixels
 			canvas.width = vp.width;
 			canvas.height = vp.height;
-			// CSS size = logical pixels (browser scales down, looks sharp)
 			canvas.style.width = `${vp.width / dpr}px`;
 			canvas.style.height = `${vp.height / dpr}px`;
 
@@ -356,7 +343,6 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 			style={{
 				display: 'flex',
 				justifyContent: 'center',
-				// On mobile: zero side padding so page spans full width; tiny top padding
 				padding: isMob ? '6px 0 0 0' : '1.5rem 1.5rem 7rem',
 			}}>
 			<canvas
@@ -364,7 +350,6 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 				style={{
 					display: 'block',
 					maxWidth: '100%',
-					// Crisp on all screens \u2014 width/height set by JS via devicePixelRatio
 					boxShadow: isMob ? 'none' : '0 4px 32px rgba(26,18,8,0.13)',
 					borderRadius: isMob ? 0 : 4,
 				}}
@@ -373,7 +358,7 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 	);
 }
 
-// \u2500\u2500\u2500 Table of Contents Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Table of Contents Sidebar ────────────────────────────────────────────────
 function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, isMobile }) {
 	const activeRef = useRef(null);
 
@@ -391,10 +376,8 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 
 	const inner = (
 		<>
-			{/* Handle (mobile only) */}
 			<div className="sheet-handle" />
 
-			{/* Header */}
 			<div
 				style={{
 					padding: '0.9rem 1.1rem',
@@ -419,11 +402,10 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 					style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.8rem', cursor: 'pointer', flexShrink: 0 }}
 					onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
 					onMouseOut={(e) => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
-					\u2715
+					✕
 				</button>
 			</div>
 
-			{/* Progress bar */}
 			<div style={{ padding: '0.6rem 1.1rem 0.5rem', borderBottom: '1px solid var(--paper-deep)', flexShrink: 0 }}>
 				<div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
 					<span style={{ fontSize: '0.62rem', color: 'var(--ink-faint)', fontWeight: 600 }}>PROGRESS</span>
@@ -436,11 +418,10 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 				</div>
 			</div>
 
-			{/* Chapter list */}
 			<div className="toc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
 				{chapters.length === 0 ? (
 					<div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-						<div style={{ fontSize: '1.8rem', marginBottom: '0.6rem' }}>\ud83d\udcc4</div>
+						<div style={{ fontSize: '1.8rem', marginBottom: '0.6rem' }}>📄</div>
 						<p style={{ color: 'var(--ink-faint)', fontSize: '0.8rem', fontStyle: 'italic', lineHeight: 1.6 }}>
 							No chapters found in this PDF's outline.
 						</p>
@@ -506,12 +487,12 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 	);
 }
 
-// \u2500\u2500\u2500 End Room Confirm Dialog \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── End Room Confirm Dialog ──────────────────────────────────────────────────
 function EndRoomDialog({ onConfirm, onCancel }) {
 	return (
 		<div style={{ position: 'fixed', inset: 0, background: 'rgba(26,18,8,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
 			<div className="toast-pop" style={{ background: '#fff', borderRadius: 20, padding: '2rem', maxWidth: 360, width: '100%', boxShadow: '0 24px 64px rgba(26,18,8,0.25)', textAlign: 'center' }}>
-				<div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>\ud83d\udcd5</div>
+				<div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📕</div>
 				<h3 style={{ fontFamily: "'Lora', serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>End this room?</h3>
 				<p style={{ color: 'var(--ink-faint)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
 					This will permanently delete the room and the book for both readers. This cannot be undone.
@@ -529,7 +510,7 @@ function EndRoomDialog({ onConfirm, onCancel }) {
 	);
 }
 
-// \u2500\u2500\u2500 Message Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Message Toast ────────────────────────────────────────────────────────────
 function MessageToast({ msg, onDismiss, onOpen }) {
 	useEffect(() => {
 		const t = setTimeout(onDismiss, 4500);
@@ -552,7 +533,7 @@ function MessageToast({ msg, onDismiss, onOpen }) {
 	);
 }
 
-// \u2500\u2500\u2500 Desktop Floating Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Desktop Floating Bar ─────────────────────────────────────────────────────
 const THEMES = [{ label: '☀️', tip: 'Light' }, { label: '📜', tip: 'Sepia' }, { label: '🌙', tip: 'Dark' }];
 
 function FloatingBar({
@@ -569,7 +550,7 @@ function FloatingBar({
 			style={{ position: 'fixed', top: 64, right: 18, zIndex: 50, flexDirection: 'column', alignItems: 'flex-end', gap: '0.45rem' }}>
 			{isSamePage && (
 				<div className="toast-pop" style={{ background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '4px 12px', fontSize: '0.68rem', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(26,18,8,0.22)' }}>
-					\ud83d\udcd6 Reading together
+					📖 Reading together
 				</div>
 			)}
 
@@ -600,7 +581,7 @@ function FloatingBar({
 					<div style={{ width: 1, height: 20, background: 'var(--paper-deep)' }} />
 
 					<div className="avatar-wrap" style={{ animation: 'floatBob 3.6s 0.4s ease-in-out infinite' }}>
-						<span className="avatar-tooltip">{partner.name || 'Partner'} \u00b7 p.{partnerPage + 1}</span>
+						<span className="avatar-tooltip">{partner.name || 'Partner'} · p.{partnerPage + 1}</span>
 						<div style={{ width: 36, height: 36, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem', color: '#fff', boxShadow: `0 0 0 2px rgba(247,242,234,1), 0 0 0 4px ${partner.color || '#999'}44`, cursor: 'default' }}>
 							{(partner.name || '?')[0]?.toUpperCase()}
 						</div>
@@ -646,16 +627,16 @@ function FloatingBar({
 	);
 }
 
-// \u2500\u2500\u2500 Mobile Bottom Navigation Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Mobile Bottom Navigation Bar ────────────────────────────────────────────
 function MobileNavBar({
 	me, partner, partnerPage, currentPage, unreadCount,
 	onOpenChat, onOpenToc, onOpenMusic,
 	tocOpen, chatOpen, musicOpen,
 	toast, onDismissToast, hasChapters, spotifyConnected, nowPlaying,
 	onPrev, onNext, totalPages,
+	theme, onCycleTheme,
 }) {
-	// currentPage prop is 0-based; totalPages is the real total
-	const page1 = currentPage + 1; // 1-based for display & logic
+	const page1 = currentPage + 1;
 	const isFirst = page1 <= 1;
 	const isLast = totalPages > 0 && page1 >= totalPages;
 	const isSamePage = partnerPage === currentPage;
@@ -675,23 +656,20 @@ function MobileNavBar({
 				borderTop: '1px solid var(--paper-deep)',
 				paddingBottom: 'env(safe-area-inset-bottom, 0px)',
 			}}>
-			{/* Toast above bar */}
 			{toast && (
 				<div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, width: '90vw', maxWidth: 340 }}>
 					<MessageToast msg={toast} onDismiss={onDismissToast} onOpen={onOpenChat} />
 				</div>
 			)}
 
-			{/* "Reading together" pill \u2014 floats above bar, never affects layout */}
 			{isSamePage && (
 				<div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, pointerEvents: 'none' }}>
 					<span className="toast-pop" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '3px 12px', fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(26,18,8,0.18)' }}>
-						\ud83d\udcd6 Reading together
+						📖 Reading together
 					</span>
 				</div>
 			)}
 
-			{/* Main bar row */}
 			<div style={{ display: 'flex', alignItems: 'center', padding: '0.45rem 0.75rem', gap: '0.3rem' }}>
 				{/* Prev page */}
 				<button
@@ -699,23 +677,22 @@ function MobileNavBar({
 					onClick={onPrev}
 					disabled={isFirst}
 					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isFirst ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isFirst ? 'transparent' : 'var(--ink)', color: isFirst ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isFirst ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-					\u2039
+					‹
 				</button>
 
-				{/* Centre section: page counter + action buttons */}
+				{/* Centre section */}
 				<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
 
-					{/* Page counter \u2014 most important, shown prominently */}
+					{/* Page counter */}
 					<div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', borderRadius: 10, padding: '4px 10px', flexShrink: 0 }}>
 						<span style={{ fontFamily: "'Lora', serif", fontWeight: 800, fontSize: '1rem', color: 'var(--ink)', lineHeight: 1 }}>
 							{page1}
 						</span>
 						<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 500 }}>
-							/{totalPages || '\u2026'}
+							/{totalPages || '…'}
 						</span>
 					</div>
 
-					{/* Divider */}
 					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
 
 					{/* Avatars */}
@@ -729,11 +706,11 @@ function MobileNavBar({
 						</div>
 					</div>
 
-					{/* Divider */}
 					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
 
 					{/* Theme */}
 					<button onClick={onCycleTheme} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}>{THEMES[theme].label}</button>
+
 					{/* TOC */}
 					{hasChapters && (
 						<button onClick={onOpenToc}
@@ -772,24 +749,23 @@ function MobileNavBar({
 					onClick={onNext}
 					disabled={isLast}
 					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isLast ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isLast ? 'transparent' : 'var(--ink)', color: isLast ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLast ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-					\u203a
+					›
 				</button>
 			</div>
 		</div>
 	);
 }
 
-// \u2500\u2500\u2500 Emoji Picker \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Emoji Picker ─────────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = [
-	{ label: '\ud83d\ude0a', title: 'Smileys', emojis: ['\ud83d\ude00','\ud83d\ude02','\ud83d\ude0d','\ud83e\udd70','\ud83d\ude0a','\ud83d\ude0e','\ud83e\udd29','\ud83d\ude2d','\ud83d\ude05','\ud83e\udd14','\ud83d\ude2c','\ud83d\ude44','\ud83d\ude34','\ud83e\udd79','\ud83d\ude07','\ud83e\udd23','\ud83d\ude06','\ud83d\ude0b','\ud83d\ude1b','\ud83e\udd72','\ud83e\udee0','\ud83d\ude24','\ud83d\ude29','\ud83d\ude22','\ud83d\ude21','\ud83e\udd2f','\ud83e\udd73','\ud83d\ude0f','\ud83e\udee1','\ud83d\ude10'] },
-	{ label: '\ud83d\udcda', title: 'Books & Reading', emojis: ['\ud83d\udcda','\ud83d\udcd6','\ud83d\udcdd','\u270f\ufe0f','\ud83d\udd8a\ufe0f','\ud83d\udd8b\ufe0f','\ud83d\udcd3','\ud83d\udcd4','\ud83d\udcd2','\ud83d\udcd5','\ud83d\udcd7','\ud83d\udcd8','\ud83d\udcd9','\ud83d\uddd2\ufe0f','\ud83d\udcc4','\ud83d\udcc3','\ud83d\udcd1','\ud83d\udd16','\ud83c\udff7\ufe0f','\ud83d\udca1','\ud83e\udde0','\ud83d\udc53','\ud83d\udd0d','\u2728','\ud83d\udcac','\ud83d\udcad','\ud83d\udde8\ufe0f','\ud83d\udcaf','\u2b50','\ud83c\udf1f'] },
-	{ label: '\ud83d\udc4d', title: 'Gestures', emojis: ['\ud83d\udc4d','\ud83d\udc4e','\ud83d\udc4f','\ud83d\ude4c','\ud83e\udd1d','\ud83e\udef6','\u2764\ufe0f','\ud83d\udc94','\ud83d\udc95','\ud83d\udc9e','\ud83d\udc96','\ud83d\udc97','\ud83d\udc93','\ud83d\udc98','\ud83d\udc9d','\ud83d\udd25','\u2705','\u274c','\u26a1','\ud83c\udf89','\ud83c\udf8a','\ud83c\udfaf','\ud83d\udcaa','\ud83e\udec2','\ud83d\udc40','\ud83e\udd26','\ud83e\udd37','\ud83d\udc80','\ud83e\udee3','\ud83d\ude2e'] },
-	{ label: '\ud83c\udf19', title: 'Nature & Time', emojis: ['\ud83c\udf19','\u2600\ufe0f','\u2b50','\ud83c\udf1f','\u2728','\ud83c\udf08','\u2601\ufe0f','\ud83c\udf27\ufe0f','\u2744\ufe0f','\ud83c\udf42','\ud83c\udf43','\ud83c\udf38','\ud83c\udf3a','\ud83c\udf3b','\ud83c\udf40','\ud83c\udf3f','\ud83e\udeb4','\ud83c\udf31','\ud83c\udf0a','\ud83c\udfd4\ufe0f','\ud83c\udf05','\ud83c\udf04','\ud83d\udd50','\u23f0','\ud83d\udcc5','\ud83d\uddd3\ufe0f','\u231b','\u23f3','\ud83d\udd2e','\ud83e\ude84'] },
-	{ label: '\ud83c\udfad', title: 'Fun & Reactions', emojis: ['\ud83d\udc80','\ud83d\ude2d','\ud83d\udc85','\ud83d\udc7b','\ud83e\udd21','\ud83e\udee0','\ud83e\udd74','\ud83e\udd22','\ud83d\ude35','\ud83e\udd2e','\ud83e\udee5','\ud83d\ude36','\ud83e\udd2b','\ud83e\uddd0','\ud83e\udd13','\ud83d\udc7d','\ud83e\udd16','\ud83d\udca9','\ud83e\udef6','\ud83d\ude4f','\ud83e\udd1e','\u270c\ufe0f','\ud83e\udd1f','\ud83e\udd19','\ud83d\udc48','\ud83d\udc49','\ud83d\udc46','\ud83d\udc47','\u261d\ufe0f','\u270b'] },
+	{ label: '😊', title: 'Smileys', emojis: ['😀','😂','😍','🥰','😊','😎','🤩','😭','😅','🤔','😬','🙄','😴','🤖','😇','🤣','😆','😋','😛','🤢','🫠','😤','😩','😢','😡','🤯','🥳','😏','🫡','😐'] },
+	{ label: '📚', title: 'Books & Reading', emojis: ['📚','📖','📝','✏️','🖊️','🖋️','📓','📔','📒','📕','📗','📘','📙','🗒️','📄','📃','📑','🔖','🏷️','💡','🧠','👓','🔍','✨','💬','💭','🗨️','💯','⭐','🌟'] },
+	{ label: '👍', title: 'Gestures', emojis: ['👍','👎','👏','🙌','🤝','🫶','❤️','💔','💕','💞','💖','💗','💓','💘','💝','🔥','✅','❌','⚡','🎉','🎊','🎯','💪','🫲','👀','🤦','🤷','💀','🫣','😮'] },
+	{ label: '🌙', title: 'Nature & Time', emojis: ['🌙','☀️','⭐','🌟','✨','🌈','☁️','🌧️','❄️','🍂','🍃','🌸','🌺','🌻','🌼','🌿','🪴','🌱','🌊','🏔️','🌅','🌄','🕐','⏰','📅','🗓️','⌛','⏳','🔮','🪄'] },
+	{ label: '🎭', title: 'Fun & Reactions', emojis: ['💀','😭','💅','👻','🤡','🫠','🤮','🤢','😵','🤤','🫥','😶','🤫','🧐','🤓','👽','🤖','💩','🫶','🙏','🤞','✌️','🤟','🤘','👈','👉','👆','👇','☝️','✋'] },
 ];
 
-
-// ─── Jump-to-page modal ──────────────────────────────────────────────────────
+// ─── Jump-to-page modal ───────────────────────────────────────────────────────
 function JumpModal({ currentPage, totalPages, onJump, onClose }) {
 	const [val, setVal] = useState(String(currentPage));
 	const inputRef = useRef();
@@ -812,7 +788,7 @@ function JumpModal({ currentPage, totalPages, onJump, onClose }) {
 	);
 }
 
-// ─── Floating emoji reactions ─────────────────────────────────────────────────
+// ─── Floating emoji reactions ──────────────────────────────────────────────────
 function FloatingReactions({ items }) {
 	return (
 		<div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
@@ -823,7 +799,7 @@ function FloatingReactions({ items }) {
 	);
 }
 
-// ─── Reaction popup (long-press) ─────────────────────────────────────────────
+// ─── Reaction popup (long-press) ──────────────────────────────────────────────
 const QUICK_REACTIONS = ['❤️','😂','🤯','😭','👏','🔥'];
 function ReactionPopup({ x, y, onReact, onReply, onClose }) {
 	const ref = useRef();
@@ -878,7 +854,7 @@ function EmojiPicker({ onSelect, onClose }) {
 	);
 }
 
-// \u2500\u2500\u2500 Chat Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Chat Sidebar ─────────────────────────────────────────────────────────────
 function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle }) {
 	const [text, setText] = useState('');
 	const [emojiOpen, setEmojiOpen] = useState(false);
@@ -924,8 +900,6 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		return { ...msg, isGrouped: !!(prev && prev.userId === msg.userId && (msg.ts - prev.ts) < 60000) };
 	});
 
-
-
 	const insertEmoji = (emoji) => {
 		const el = inputRef.current;
 		if (!el) { setText((t) => t + emoji); return; }
@@ -949,7 +923,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 						<p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.2 }}>{partner.name || 'Partner'}</p>
 						<p style={{ fontSize: '0.64rem', color: 'var(--sage)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
 							<span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
-							Online \u00b7 Page {(partner.page ?? 0) + 1}
+							Online · Page {(partner.page ?? 0) + 1}
 						</p>
 					</div>
 				</div>
@@ -957,7 +931,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 					style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.85rem', cursor: 'pointer' }}
 					onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
 					onMouseOut={(e) => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
-					\u2715
+					✕
 				</button>
 			</div>
 
@@ -965,8 +939,8 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 			<div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 				{messages.length === 0 && (
 					<div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-						<div style={{ fontSize: '2rem', marginBottom: '0.75rem', animation: 'floatBob 3s ease-in-out infinite' }}>\u270d\ufe0f</div>
-						<p style={{ color: 'var(--ink-faint)', fontSize: '0.82rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.6 }}>Start the conversation\u2026</p>
+						<div style={{ fontSize: '2rem', marginBottom: '0.75rem', animation: 'floatBob 3s ease-in-out infinite' }}>✍️</div>
+						<p style={{ color: 'var(--ink-faint)', fontSize: '0.82rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.6 }}>Start the conversation…</p>
 					</div>
 				)}
 				{grouped.map((msg, i) => {
@@ -1006,6 +980,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 					<button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
 				</div>
 			)}
+
 			{/* Input */}
 			<div style={{ padding: '0.6rem', borderTop: '1px solid var(--paper-deep)', flexShrink: 0, background: '#fff' }}>
 				<div
@@ -1017,7 +992,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 						value={text}
 						onChange={(e) => setText(e.target.value)}
 						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-						placeholder={`Message ${partner.name || 'partner'}\u2026`}
+						placeholder={`Message ${partner.name || 'partner'}…`}
 						rows={1}
 						style={{ flex: 1, background: 'transparent', resize: 'none', color: 'var(--ink)', fontSize: '0.875rem', lineHeight: 1.5, fontFamily: "'Lora', serif", maxHeight: 100, overflowY: 'auto', outline: 'none', border: 'none' }}
 					/>
@@ -1025,18 +1000,18 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 						{emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={() => setEmojiOpen(false)} />}
 						<button onClick={() => setEmojiOpen((v) => !v)} title="Emoji"
 							style={{ width: 30, height: 30, borderRadius: 9, border: 'none', background: emojiOpen ? 'var(--paper-deep)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', transition: 'background 0.15s' }}>
-							\ud83d\ude0a
+							😊
 						</button>
 					</div>
 					{text.length > 420 && <span style={{ fontSize: '0.58rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>{500 - text.length}</span>}
-						<button onClick={send} onTouchEnd={e => { e.preventDefault(); send(); }} disabled={!text.trim()}
+					<button onClick={send} onTouchEnd={e => { e.preventDefault(); send(); }} disabled={!text.trim()}
 						style={{ width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0, background: text.trim() ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s', cursor: text.trim() ? 'pointer' : 'not-allowed' }}>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? '#fff' : 'var(--ink-faint)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
 							<path d="M12 19V5M5 12l7-7 7 7" />
 						</svg>
 					</button>
 				</div>
-				<p style={{ color: 'var(--ink-faint)', fontSize: '0.62rem', textAlign: 'center', marginTop: '0.3rem' }}>Enter to send \u00b7 Shift+Enter for new line</p>
+				<p style={{ color: 'var(--ink-faint)', fontSize: '0.62rem', textAlign: 'center', marginTop: '0.3rem' }}>Enter to send · Shift+Enter for new line</p>
 			</div>
 		</div>
 	);
@@ -1059,7 +1034,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 	);
 }
 
-// \u2500\u2500\u2500 Spotify Logo \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Spotify Logo ─────────────────────────────────────────────────────────────
 function SpotifyLogo({ size = 24, color = 'currentColor' }) {
 	return (
 		<svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -1068,14 +1043,14 @@ function SpotifyLogo({ size = 24, color = 'currentColor' }) {
 	);
 }
 
-// \u2500\u2500\u2500 PKCE helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── PKCE helpers ─────────────────────────────────────────────────────────────
 function _b64url(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
 async function _challenge(v) { return _b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))); }
 function _rand(n) { const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; return Array.from(crypto.getRandomValues(new Uint8Array(n))).map((b) => ch[b % ch.length]).join(''); }
 
 const SP_SCOPES = ['user-read-currently-playing','user-read-playback-state','user-modify-playback-state','user-read-recently-played'].join(' ');
 
-// \u2500\u2500\u2500 useSpotifyPlayer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── useSpotifyPlayer ─────────────────────────────────────────────────────────
 function useSpotifyPlayer({ roomId, clientId, redirectUri, onTrackChange }) {
 	const [token, setToken] = useState(() => sessionStorage.getItem('sp_np_token') || null);
 	const [nowPlaying, setNowPlaying] = useState(null);
@@ -1177,7 +1152,7 @@ function useSpotifyPlayer({ roomId, clientId, redirectUri, onTrackChange }) {
 	return { token, nowPlaying, error, controlling, login, logout, play, pause, next, prev, seek, setVol };
 }
 
-// \u2500\u2500\u2500 Music Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Music Sidebar ────────────────────────────────────────────────────────────
 function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile }) {
 	const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
 	const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT || window.location.origin + '/';
@@ -1207,7 +1182,6 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 		<>
 			{isMobile && <div className="sheet-handle" style={{ background: '#333' }} />}
 
-			{/* Blurred backdrop */}
 			{display?.albumArt && (
 				<div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: `url(${display.albumArt})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(60px) brightness(0.18) saturate(1.8)', transform: 'scale(1.15)', pointerEvents: 'none' }} />
 			)}
@@ -1223,27 +1197,26 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 						Disconnect
 					</button>
 				)}
-				<button onClick={onClose} className="sp-btn" style={{ width: 30, height: 30, color: '#777', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', fontSize: '0.82rem' }}>\u2715</button>
+				<button onClick={onClose} className="sp-btn" style={{ width: 30, height: 30, color: '#777', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', fontSize: '0.82rem' }}>✕</button>
 			</div>
 
 			{!sp.token ? (
-				/* Not connected */
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.75rem', gap: '1.5rem', textAlign: 'center', overflowY: 'auto' }}>
 					<div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg,#1DB954 0%,#0f7a35 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 0 rgba(29,185,84,0.4)', animation: 'spPulse 2.4s ease-in-out infinite', flexShrink: 0 }}>
 						<SpotifyLogo size="40" color="#fff" />
 					</div>
 					<div style={{ maxWidth: 280 }}>
 						<p style={{ color: '#fff', fontFamily: "'Lora',serif", fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.6rem', lineHeight: 1.3 }}>Listen Together</p>
-						<p style={{ color: '#a0a0a0', fontSize: '0.82rem', lineHeight: 1.75 }}>Connect Spotify once. Play anything on your phone, laptop, or any device \u2014 it syncs live to your reading partner.</p>
+						<p style={{ color: '#a0a0a0', fontSize: '0.82rem', lineHeight: 1.75 }}>Connect Spotify once. Play anything on your phone, laptop, or any device — it syncs live to your reading partner.</p>
 					</div>
 					{!clientId && (
 						<div style={{ width: '100%', background: 'rgba(224,92,74,0.1)', border: '1px solid rgba(224,92,74,0.25)', borderRadius: 10, padding: '0.65rem 0.9rem' }}>
-							<p style={{ color: '#e05c4a', fontSize: '0.73rem', fontWeight: 600 }}>\u26a0 VITE_SPOTIFY_CLIENT_ID not set in .env</p>
+							<p style={{ color: '#e05c4a', fontSize: '0.73rem', fontWeight: 600 }}>⚠ VITE_SPOTIFY_CLIENT_ID not set in .env</p>
 						</div>
 					)}
 					{sp.error && (
 						<div style={{ width: '100%', background: 'rgba(224,92,74,0.1)', border: '1px solid rgba(224,92,74,0.25)', borderRadius: 10, padding: '0.65rem 0.9rem' }}>
-							<p style={{ color: '#e05c4a', fontSize: '0.73rem' }}>\u26a0 {sp.error}</p>
+							<p style={{ color: '#e05c4a', fontSize: '0.73rem' }}>⚠ {sp.error}</p>
 						</div>
 					)}
 					<button onClick={sp.login} disabled={!clientId}
@@ -1262,12 +1235,11 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 					)}
 				</div>
 			) : display ? (
-				/* Connected + playing */
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 					<div style={{ padding: '1.5rem 1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
 						<div style={{ position: 'relative' }}>
 							<div style={{ width: isMobile ? 140 : 180, height: isMobile ? 140 : 180, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)', transition: 'transform 0.3s', transform: display.isPlaying ? 'scale(1)' : 'scale(0.94)' }}>
-								{display.albumArt ? <img src={display.albumArt} alt="Album art" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: '#1f1f1f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>\ud83c\udfb5</div>}
+								{display.albumArt ? <img src={display.albumArt} alt="Album art" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: '#1f1f1f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>🎵</div>}
 							</div>
 							{isLocal && display.isPlaying && (
 								<div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '3px 9px', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1283,7 +1255,6 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 					</div>
 
 					<div style={{ padding: '0 1.25rem 0.75rem', flexShrink: 0 }}>
-						{/* Seek bar */}
 						<div style={{ marginBottom: '0.85rem' }}>
 							<div style={{ position: 'relative', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.12)', marginBottom: '0.3rem', cursor: isLocal ? 'pointer' : 'default' }}>
 								<div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${progressPct}%`, background: '#1DB954', borderRadius: 4, transition: seeking ? 'none' : 'width 1s linear', pointerEvents: 'none' }} />
@@ -1295,7 +1266,6 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 							</div>
 						</div>
 
-						{/* Controls */}
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
 							<button onClick={sp.prev} disabled={!isLocal || sp.controlling} className="sp-btn" style={{ width: 40, height: 40, color: isLocal ? '#fff' : '#3a3a3a' }}>
 								<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" /></svg>
@@ -1308,7 +1278,6 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 							</button>
 						</div>
 
-						{/* Volume */}
 						<div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={volume === 0 ? '#666' : '#a0a0a0'} strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />{volume > 0 && <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />}{volume > 0.5 && <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />}</svg>
 							<div style={{ flex: 1, position: 'relative', height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.1)' }}>
@@ -1325,7 +1294,6 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 					)}
 				</div>
 			) : (
-				/* Connected, nothing playing */
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.25rem', padding: '2.5rem 2rem', textAlign: 'center' }}>
 					<div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'floatBob 3.5s ease-in-out infinite' }}>
 						<SpotifyLogo size="32" color="#333" />
@@ -1357,7 +1325,7 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 	);
 }
 
-// \u2500\u2500\u2500 Recursive chapter outline flattener \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Recursive chapter outline flattener ─────────────────────────────────────
 async function extractChapters(pdfDoc) {
 	try {
 		const outline = await pdfDoc.getOutline();
@@ -1380,7 +1348,7 @@ async function extractChapters(pdfDoc) {
 	} catch (e) { console.warn('Could not extract chapters:', e); return []; }
 }
 
-// \u2500\u2500\u2500 ReaderPage \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── ReaderPage ───────────────────────────────────────────────────────────────
 export default function ReaderPage() {
 	useEffect(() => { injectReaderStyles(); }, []);
 
@@ -1445,7 +1413,7 @@ export default function ReaderPage() {
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [toast, setToast] = useState(null);
 	const [syncFlash, setSyncFlash] = useState(false);
-	const [swipeHint, setSwipeHint] = useState(null); // 'left' | 'right' | null
+	const [swipeHint, setSwipeHint] = useState(null);
 	const prevMsgCount = useRef(0);
 	const scrollRef = useRef();
 	const restoredRef = useRef(false);
@@ -1533,54 +1501,48 @@ export default function ReaderPage() {
 	const pagesDiff = Math.abs(partnerPage + 1 - currentPage);
 	const partnerObj = { ...(partner || {}), ...(livePartner || {}), page: partnerPage };
 	const me = { name, color };
-	const bookTitle = session?.book?.title || 'Reading\u2026';
-
-	// Mobile bottom nav bottom padding
-	const mobileNavHeight = isMobile ? 72 : 0;
+	const bookTitle = session?.book?.title || 'Reading…';
 
 	if (!session) {
 		return (
 			<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)', gap: '1rem', flexDirection: 'column' }}>
 				<p style={{ color: 'var(--ink-faint)', fontStyle: 'italic' }}>No session found.</p>
-				<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>\u2190 Go Home</button>
+				<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
 			</div>
 		);
 	}
 
-	const anySidebarOpen = tocOpen || chatOpen || musicOpen;
-
 	return (
 		<div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper)', overflow: 'hidden' }}>
 			{showEndDialog && <EndRoomDialog onConfirm={handleEndRoom} onCancel={() => setShowEndDialog(false)} />}
-		{jumpOpen && <JumpModal currentPage={currentPage} totalPages={totalPages} onJump={p => goToPage(p)} onClose={() => setJumpOpen(false)} />}
-		<FloatingReactions items={floatingReactions} />
-		{!isOnline && <div className="offline-banner" style={{ background: '#e05c4a', color: '#fff', padding: '6px 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, zIndex: 30 }}>📡 No internet — sync paused</div>}
+			{jumpOpen && <JumpModal currentPage={currentPage} totalPages={totalPages} onJump={p => goToPage(p)} onClose={() => setJumpOpen(false)} />}
+			<FloatingReactions items={floatingReactions} />
+			{!isOnline && <div className="offline-banner" style={{ background: '#e05c4a', color: '#fff', padding: '6px 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, zIndex: 30 }}>📡 No internet — sync paused</div>}
 
 			{/* Top bar */}
 			<header style={{ height: 48, flexShrink: 0, zIndex: 20, background: 'rgba(247,242,234,0.97)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.9rem' }}>
 				{_amHost ? (
 					<button onClick={() => setShowEndDialog(true)} disabled={ending}
 						style={{ color: ending ? 'var(--ink-faint)' : '#c0392b', fontSize: '0.75rem', fontWeight: 600, background: 'none', border: '1.5px solid currentColor', borderRadius: 100, padding: '3px 8px', cursor: 'pointer', opacity: ending ? 0.5 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
-						{ending ? 'Ending\u2026' : 'End Room'}
+						{ending ? 'Ending…' : 'End Room'}
 					</button>
 				) : (
 					<button onClick={() => navigate('home')}
 						style={{ color: 'var(--ink-faint)', fontSize: '0.75rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
 						onMouseOver={(e) => (e.currentTarget.style.color = 'var(--amber)')}
 						onMouseOut={(e) => (e.currentTarget.style.color = 'var(--ink-faint)')}>
-						\u2190 Leave
+						← Leave
 					</button>
 				)}
 
-				<span style={{ color: 'var(--paper-deep)', flexShrink: 0 }}>\u00b7</span>
+				<span style={{ color: 'var(--paper-deep)', flexShrink: 0 }}>·</span>
 				<span style={{ fontFamily: "'Lora', serif", fontSize: '0.95rem', fontWeight: 700, color: 'var(--ink)', flexShrink: 0 }}>
 					Page<em style={{ fontStyle: 'italic', color: 'var(--amber)' }}>Turn</em>
 				</span>
 
-				{/* Book title \u2014 hidden on very small screens */}
 				{!isMobile && (
 					<>
-						<span style={{ color: 'var(--paper-deep)' }}>\u00b7</span>
+						<span style={{ color: 'var(--paper-deep)' }}>·</span>
 						<span style={{ fontFamily: "'Crimson Pro', serif", fontStyle: 'italic', color: 'var(--ink-soft)', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
 							{bookTitle}
 						</span>
@@ -1589,13 +1551,11 @@ export default function ReaderPage() {
 
 				<div style={{ flex: 1 }} />
 
-				{/* Room code badge */}
 				<div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'var(--paper-mid)', border: '1px solid var(--paper-deep)', borderRadius: 100, padding: '3px 8px', flexShrink: 0 }}>
 					<span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
 					<span style={{ color: 'var(--ink-faint)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.05em' }}>#{roomId}</span>
 				</div>
 
-				{/* Progress \u2014 desktop only */}
 				{totalPages > 0 && !isMobile && (
 					<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
 						<div style={{ width: 60, height: 3, background: 'var(--paper-deep)', borderRadius: 3 }}>
@@ -1610,7 +1570,6 @@ export default function ReaderPage() {
 
 			{/* Body */}
 			<div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-				{/* TOC \u2014 left (desktop inline / mobile sheet) */}
 				{tocOpen && (
 					<TocSidebar
 						chapters={chapters}
@@ -1627,28 +1586,24 @@ export default function ReaderPage() {
 					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}
 					{...(isMobile ? swipeHandlers : {})}>
 
-					{/* Swipe direction flash \u2014 mobile only */}
 					{isMobile && swipeHint && (
 						<div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'flex', alignItems: 'center', justifyContent: swipeHint === 'left' ? 'flex-end' : 'flex-start', padding: '0 1.5rem', pointerEvents: 'none' }}>
 							<div
 								className={swipeHint === 'left' ? 'swipe-hint-left' : 'swipe-hint-right'}
 								style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(26,18,8,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem' }}>
-								{swipeHint === 'left' ? '\u203a' : '\u2039'}
+								{swipeHint === 'left' ? '›' : '‹'}
 							</div>
 						</div>
 					)}
 					<div
 						ref={scrollRef}
 						className="reader-scroll"
-						style={{
-							flex: 1,
-							overflowY: 'auto',
-						}}>
+						style={{ flex: 1, overflowY: 'auto' }}>
 						{pdfLoading ? (
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
 								<div style={{ width: 32, height: 32, border: '3px solid var(--paper-deep)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
 								<p style={{ color: 'var(--ink-faint)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-									{downloadPct > 0 && downloadPct < 100 ? 'Downloading book\u2026' : downloadPct === 100 ? 'Rendering PDF\u2026' : 'Loading\u2026'}
+									{downloadPct > 0 && downloadPct < 100 ? 'Downloading book…' : downloadPct === 100 ? 'Rendering PDF…' : 'Loading…'}
 								</p>
 								{downloadPct > 0 && (
 									<div style={{ width: 200 }}>
@@ -1661,8 +1616,8 @@ export default function ReaderPage() {
 							</div>
 						) : pdfError ? (
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem', minHeight: 300 }}>
-								<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>\u26a0\ufe0f {pdfError}</p>
-								<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>\u2190 Go Home</button>
+								<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>⚠️ {pdfError}</p>
+								<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
 							</div>
 						) : pdfDoc ? (
 							<PdfPage pdfDoc={pdfDoc} pageNum={currentPage} />
@@ -1675,17 +1630,17 @@ export default function ReaderPage() {
 							<div style={{ width: 7, height: 7, borderRadius: '50%', background: partner?.color, flexShrink: 0 }} />
 							<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{partner?.name} on p.{partnerPage + 1}</span>
 							<button onClick={syncToPartner} style={{ color: 'var(--amber)', fontWeight: 700, fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px dotted var(--amber)', padding: '0 1px', lineHeight: 1, flexShrink: 0 }}>
-								{syncFlash ? '\u2713' : '\u2192'}
+								{syncFlash ? '✓' : '→'}
 							</button>
 						</div>
 					)}
 
-					{/* Desktop page nav \u2014 bottom of reading area, shown only on desktop */}
+					{/* Desktop page nav */}
 					{totalPages > 0 && !isMobile && (
 						<div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.75rem 2rem 1.25rem', background: 'linear-gradient(to top, rgba(247,242,234,1) 60%, rgba(247,242,234,0))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
 							<button className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}
 								style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${currentPage <= 1 ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage <= 1 ? 'transparent' : 'var(--ink)', color: currentPage <= 1 ? 'var(--paper-deep)' : '#fff', fontSize: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer' }}>
-								\u2039
+								‹
 							</button>
 							<div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
 								<input type="number" min={1} max={totalPages} value={currentPage}
@@ -1697,13 +1652,12 @@ export default function ReaderPage() {
 							</div>
 							<button className="page-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}
 								style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${currentPage >= totalPages ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage >= totalPages ? 'transparent' : 'var(--ink)', color: currentPage >= totalPages ? 'var(--paper-deep)' : '#fff', fontSize: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer' }}>
-								\u203a
+								›
 							</button>
 						</div>
 					)}
 				</div>
 
-				{/* Chat \u2014 right (desktop inline / mobile sheet) */}
 				{chatOpen && (
 					<ChatSidebar
 						messages={messages}
@@ -1715,7 +1669,6 @@ export default function ReaderPage() {
 					/>
 				)}
 
-				{/* Music \u2014 right (desktop inline / mobile sheet) */}
 				{musicOpen && (
 					<MusicSidebar
 						roomId={roomId}
@@ -1736,7 +1689,7 @@ export default function ReaderPage() {
 				hasChapters={chapters.length > 0} spotifyConnected={!!musicSyncTrack} nowPlaying={!!musicSyncTrack?.isPlaying}
 			/>
 
-			{/* Progress strip \u2014 mobile only, sits above the nav bar */}
+			{/* Progress strip — mobile only */}
 			{isMobile && totalPages > 0 && (
 				<div style={{ height: 2, background: 'var(--paper-deep)', flexShrink: 0 }}>
 					<div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--amber), var(--amber-glow))', transition: 'width 0.4s ease' }} />
