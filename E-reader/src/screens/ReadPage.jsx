@@ -14,7 +14,9 @@ import {
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+const haptic = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
+
 const timeAgo = (ts) => {
 	const d = Math.floor((Date.now() - ts) / 1000);
 	if (d < 5) return 'just now';
@@ -23,7 +25,7 @@ const timeAgo = (ts) => {
 	return `${Math.floor(d / 3600)}h ago`;
 };
 
-// ─── CSS ──────────────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 CSS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const READER_CSS = `
   @keyframes slideRight  { from { opacity:0; transform:translateX(100%); } to { opacity:1; transform:translateX(0); } }
   @keyframes slideLeft   { from { opacity:0; transform:translateX(-100%); } to { opacity:1; transform:translateX(0); } }
@@ -156,6 +158,22 @@ const READER_CSS = `
       display: none;
     }
   }
+  @keyframes pageTurnLeft  { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes pageTurnRight { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes slideDown     { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes reactionFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-70px) scale(1.5)} }
+  @keyframes typingDot     { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+  .page-turn-left   { animation: pageTurnLeft  0.22s ease both; }
+  .page-turn-right  { animation: pageTurnRight 0.22s ease both; }
+  .reaction-float   { animation: reactionFloat 1.2s ease forwards; pointer-events:none; }
+  .typing-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--ink-faint); animation:typingDot 1.2s ease-in-out infinite; }
+  .msg-row:hover .msg-react-btn { opacity:1 !important; }
+  .theme-sepia { filter:sepia(0.45) brightness(0.97); }
+  .theme-dark  { filter:invert(1) hue-rotate(180deg) brightness(0.9); }
+  .offline-banner { animation:slideDown 0.3s ease both; }
+  .jump-modal-bg { position:fixed; inset:0; background:rgba(26,18,8,0.5); z-index:90; display:flex; align-items:flex-end; justify-content:center; padding-bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
+  .jump-modal { background:#fff; border-radius:20px; padding:1.5rem; width:min(320px,90vw); box-shadow:0 24px 64px rgba(26,18,8,0.28); animation:slideUpSheet 0.28s cubic-bezier(0.4,0,0.2,1) both; }
+
 `;
 
 function injectReaderStyles() {
@@ -166,7 +184,7 @@ function injectReaderStyles() {
 	document.head.appendChild(s);
 }
 
-// ─── Hook: detect mobile ──────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Hook: detect mobile \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function useIsMobile() {
 	const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
 	useEffect(() => {
@@ -177,7 +195,50 @@ function useIsMobile() {
 	return isMobile;
 }
 
-// ─── Swipe hook ───────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Swipe hook \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+// ─── Hook: online status ─────────────────────────────────────────────────────
+function useOnline() {
+	const [online, set] = useState(() => navigator.onLine);
+	useEffect(() => {
+		const on = () => set(true), off = () => set(false);
+		window.addEventListener('online', on); window.addEventListener('offline', off);
+		return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+	}, []);
+	return online;
+}
+
+// ─── Hook: wake lock ─────────────────────────────────────────────────────────
+function useWakeLock() {
+	const ref = useRef(null);
+	useEffect(() => {
+		if (!('wakeLock' in navigator)) return;
+		navigator.wakeLock.request('screen').then(l => { ref.current = l; }).catch(() => {});
+		const reacquire = () => { if (document.visibilityState === 'visible') navigator.wakeLock.request('screen').then(l => { ref.current = l; }).catch(() => {}); };
+		document.addEventListener('visibilitychange', reacquire);
+		return () => { ref.current?.release(); document.removeEventListener('visibilitychange', reacquire); };
+	}, []);
+}
+
+// ─── Hook: pinch zoom ────────────────────────────────────────────────────────
+function usePinchZoom(enabled) {
+	const [zoom, setZoom] = useState(1);
+	const lastDist = useRef(null);
+	const pStart = useCallback((e) => {
+		if (!enabled || e.touches.length !== 2) return;
+		lastDist.current = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+	}, [enabled]);
+	const pMove = useCallback((e) => {
+		if (!enabled || e.touches.length !== 2 || lastDist.current === null) return;
+		const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+		setZoom(z => Math.min(3, Math.max(0.8, z * (d / lastDist.current))));
+		lastDist.current = d;
+	}, [enabled]);
+	const pEnd = useCallback(() => { lastDist.current = null; }, []);
+	const resetZoom = useCallback(() => setZoom(1), []);
+	return { zoom, resetZoom, pinchHandlers: { onTouchStart: pStart, onTouchMove: pMove, onTouchEnd: pEnd } };
+}
+
 function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 } = {}) {
 	const startX = useRef(null);
 	const startY = useRef(null);
@@ -199,8 +260,8 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 		// Ignore if mostly vertical (user is scrolling)
 		if (Math.abs(dy) > maxVertical) return;
 		if (Math.abs(dx) < threshold) return;
-		if (dx < 0) onSwipeLeft?.();   // swipe left  → next page
-		else         onSwipeRight?.();  // swipe right → prev page
+		if (dx < 0) onSwipeLeft?.();   // swipe left  \u2192 next page
+		else         onSwipeRight?.();  // swipe right \u2192 prev page
 		startX.current = null;
 	}, [onSwipeLeft, onSwipeRight, threshold, maxVertical]);
 
@@ -217,8 +278,8 @@ function useSwipe(onSwipeLeft, onSwipeRight, { threshold = 50, maxVertical = 80 
 	return { onTouchStart, onTouchEnd, onTouchMove };
 }
 
-// ─── PDF Canvas Renderer ──────────────────────────────────────────────────────
-function PdfPage({ pdfDoc, pageNum }) {
+// \u2500\u2500\u2500 PDF Canvas Renderer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function PdfPage({ pdfDoc, pageNum, zoom = 1, turnDir }) {
 	const canvasRef = useRef(null);
 	const renderRef = useRef(null);
 
@@ -252,10 +313,10 @@ function PdfPage({ pdfDoc, pageNum }) {
 				// Fit by height first, but never exceed width
 				const scaleByHeight = availableHeight / baseVp.height;
 				const scaleByWidth = containerWidth / baseVp.width;
-				cssScale = Math.min(scaleByHeight, scaleByWidth);
+				cssScale = Math.min(scaleByHeight, scaleByWidth) * zoom;
 			} else {
 				// Desktop: fit to container width, capped
-				cssScale = Math.min((containerWidth - 48) / baseVp.width, 1.8);
+				cssScale = Math.min((containerWidth - 48) / baseVp.width, 1.8) * zoom;
 			}
 
 			// Physical scale: multiply by DPR so canvas pixels match screen pixels
@@ -288,32 +349,31 @@ function PdfPage({ pdfDoc, pageNum }) {
 		};
 	}, [pdfDoc, pageNum]);
 
-	const isMobPage = typeof window !== 'undefined' && window.innerWidth <= 768;
+	const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
 
 	return (
 		<div
 			style={{
 				display: 'flex',
 				justifyContent: 'center',
-				alignItems: isMobPage ? 'flex-start' : 'flex-start',
-				padding: isMobPage ? '0' : '1.5rem 1.5rem 7rem',
-				// On mobile the wrapper fills the full scroll area
-				minHeight: isMobPage ? 'calc(100vh - 48px - 74px)' : 'auto',
+				// On mobile: zero side padding so page spans full width; tiny top padding
+				padding: isMob ? '6px 0 0 0' : '1.5rem 1.5rem 7rem',
 			}}>
 			<canvas
 				ref={canvasRef}
 				style={{
 					display: 'block',
 					maxWidth: '100%',
-					boxShadow: isMobPage ? 'none' : '0 4px 32px rgba(26,18,8,0.13)',
-					borderRadius: isMobPage ? 0 : 4,
+					// Crisp on all screens \u2014 width/height set by JS via devicePixelRatio
+					boxShadow: isMob ? 'none' : '0 4px 32px rgba(26,18,8,0.13)',
+					borderRadius: isMob ? 0 : 4,
 				}}
 			/>
 		</div>
 	);
 }
 
-// ─── Table of Contents Sidebar ────────────────────────────────────────────────
+// \u2500\u2500\u2500 Table of Contents Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, isMobile }) {
 	const activeRef = useRef(null);
 
@@ -359,7 +419,7 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 					style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.8rem', cursor: 'pointer', flexShrink: 0 }}
 					onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
 					onMouseOut={(e) => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
-					✕
+					\u2715
 				</button>
 			</div>
 
@@ -380,7 +440,7 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 			<div className="toc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
 				{chapters.length === 0 ? (
 					<div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-						<div style={{ fontSize: '1.8rem', marginBottom: '0.6rem' }}>📄</div>
+						<div style={{ fontSize: '1.8rem', marginBottom: '0.6rem' }}>\ud83d\udcc4</div>
 						<p style={{ color: 'var(--ink-faint)', fontSize: '0.8rem', fontStyle: 'italic', lineHeight: 1.6 }}>
 							No chapters found in this PDF's outline.
 						</p>
@@ -446,12 +506,12 @@ function TocSidebar({ chapters, currentPage, totalPages, onNavigate, onClose, is
 	);
 }
 
-// ─── End Room Confirm Dialog ──────────────────────────────────────────────────
+// \u2500\u2500\u2500 End Room Confirm Dialog \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function EndRoomDialog({ onConfirm, onCancel }) {
 	return (
 		<div style={{ position: 'fixed', inset: 0, background: 'rgba(26,18,8,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
 			<div className="toast-pop" style={{ background: '#fff', borderRadius: 20, padding: '2rem', maxWidth: 360, width: '100%', boxShadow: '0 24px 64px rgba(26,18,8,0.25)', textAlign: 'center' }}>
-				<div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📕</div>
+				<div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>\ud83d\udcd5</div>
 				<h3 style={{ fontFamily: "'Lora', serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>End this room?</h3>
 				<p style={{ color: 'var(--ink-faint)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
 					This will permanently delete the room and the book for both readers. This cannot be undone.
@@ -469,7 +529,7 @@ function EndRoomDialog({ onConfirm, onCancel }) {
 	);
 }
 
-// ─── Message Toast ────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Message Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function MessageToast({ msg, onDismiss, onOpen }) {
 	useEffect(() => {
 		const t = setTimeout(onDismiss, 4500);
@@ -492,7 +552,9 @@ function MessageToast({ msg, onDismiss, onOpen }) {
 	);
 }
 
-// ─── Desktop Floating Bar ──────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Desktop Floating Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+const THEMES = [{ label: '☀️', tip: 'Light' }, { label: '📜', tip: 'Sepia' }, { label: '🌙', tip: 'Dark' }];
+
 function FloatingBar({
 	me, partner, partnerPage, currentPage, unreadCount,
 	onOpenChat, onOpenToc, onOpenMusic,
@@ -507,7 +569,7 @@ function FloatingBar({
 			style={{ position: 'fixed', top: 64, right: 18, zIndex: 50, flexDirection: 'column', alignItems: 'flex-end', gap: '0.45rem' }}>
 			{isSamePage && (
 				<div className="toast-pop" style={{ background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '4px 12px', fontSize: '0.68rem', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(26,18,8,0.22)' }}>
-					📖 Reading together
+					\ud83d\udcd6 Reading together
 				</div>
 			)}
 
@@ -538,7 +600,7 @@ function FloatingBar({
 					<div style={{ width: 1, height: 20, background: 'var(--paper-deep)' }} />
 
 					<div className="avatar-wrap" style={{ animation: 'floatBob 3.6s 0.4s ease-in-out infinite' }}>
-						<span className="avatar-tooltip">{partner.name || 'Partner'} · p.{partnerPage + 1}</span>
+						<span className="avatar-tooltip">{partner.name || 'Partner'} \u00b7 p.{partnerPage + 1}</span>
 						<div style={{ width: 36, height: 36, borderRadius: '50%', background: partner.color || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem', color: '#fff', boxShadow: `0 0 0 2px rgba(247,242,234,1), 0 0 0 4px ${partner.color || '#999'}44`, cursor: 'default' }}>
 							{(partner.name || '?')[0]?.toUpperCase()}
 						</div>
@@ -584,7 +646,7 @@ function FloatingBar({
 	);
 }
 
-// ─── Mobile Bottom Navigation Bar ─────────────────────────────────────────────
+// \u2500\u2500\u2500 Mobile Bottom Navigation Bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function MobileNavBar({
 	me, partner, partnerPage, currentPage, unreadCount,
 	onOpenChat, onOpenToc, onOpenMusic,
@@ -620,11 +682,11 @@ function MobileNavBar({
 				</div>
 			)}
 
-			{/* "Reading together" pill — floats above bar, never affects layout */}
+			{/* "Reading together" pill \u2014 floats above bar, never affects layout */}
 			{isSamePage && (
 				<div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, pointerEvents: 'none' }}>
 					<span className="toast-pop" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--amber-glow)', borderRadius: 100, padding: '3px 12px', fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(26,18,8,0.18)' }}>
-						📖 Reading together
+						\ud83d\udcd6 Reading together
 					</span>
 				</div>
 			)}
@@ -637,19 +699,19 @@ function MobileNavBar({
 					onClick={onPrev}
 					disabled={isFirst}
 					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isFirst ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isFirst ? 'transparent' : 'var(--ink)', color: isFirst ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isFirst ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-					‹
+					\u2039
 				</button>
 
 				{/* Centre section: page counter + action buttons */}
 				<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
 
-					{/* Page counter — most important, shown prominently */}
+					{/* Page counter \u2014 most important, shown prominently */}
 					<div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', borderRadius: 10, padding: '4px 10px', flexShrink: 0 }}>
 						<span style={{ fontFamily: "'Lora', serif", fontWeight: 800, fontSize: '1rem', color: 'var(--ink)', lineHeight: 1 }}>
 							{page1}
 						</span>
 						<span style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', fontWeight: 500 }}>
-							/{totalPages || '…'}
+							/{totalPages || '\u2026'}
 						</span>
 					</div>
 
@@ -670,6 +732,8 @@ function MobileNavBar({
 					{/* Divider */}
 					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
 
+					{/* Theme */}
+					<button onClick={onCycleTheme} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}>{THEMES[theme].label}</button>
 					{/* TOC */}
 					{hasChapters && (
 						<button onClick={onOpenToc}
@@ -708,21 +772,77 @@ function MobileNavBar({
 					onClick={onNext}
 					disabled={isLast}
 					style={{ width: 44, height: 44, borderRadius: '50%', border: `1.5px solid ${isLast ? 'var(--paper-deep)' : 'var(--ink)'}`, background: isLast ? 'transparent' : 'var(--ink)', color: isLast ? 'var(--paper-deep)' : '#fff', fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLast ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-					›
+					\u203a
 				</button>
 			</div>
 		</div>
 	);
 }
 
-// ─── Emoji Picker ─────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Emoji Picker \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const EMOJI_CATEGORIES = [
-	{ label: '😊', title: 'Smileys', emojis: ['😀','😂','😍','🥰','😊','😎','🤩','😭','😅','🤔','😬','🙄','😴','🥹','😇','🤣','😆','😋','😛','🥲','🫠','😤','😩','😢','😡','🤯','🥳','😏','🫡','😐'] },
-	{ label: '📚', title: 'Books & Reading', emojis: ['📚','📖','📝','✏️','🖊️','🖋️','📓','📔','📒','📕','📗','📘','📙','🗒️','📄','📃','📑','🔖','🏷️','💡','🧠','👓','🔍','✨','💬','💭','🗨️','💯','⭐','🌟'] },
-	{ label: '👍', title: 'Gestures', emojis: ['👍','👎','👏','🙌','🤝','🫶','❤️','💔','💕','💞','💖','💗','💓','💘','💝','🔥','✅','❌','⚡','🎉','🎊','🎯','💪','🫂','👀','🤦','🤷','💀','🫣','😮'] },
-	{ label: '🌙', title: 'Nature & Time', emojis: ['🌙','☀️','⭐','🌟','✨','🌈','☁️','🌧️','❄️','🍂','🍃','🌸','🌺','🌻','🍀','🌿','🪴','🌱','🌊','🏔️','🌅','🌄','🕐','⏰','📅','🗓️','⌛','⏳','🔮','🪄'] },
-	{ label: '🎭', title: 'Fun & Reactions', emojis: ['💀','😭','💅','👻','🤡','🫠','🥴','🤢','😵','🤮','🫥','😶','🤫','🧐','🤓','👽','🤖','💩','🫶','🙏','🤞','✌️','🤟','🤙','👈','👉','👆','👇','☝️','✋'] },
+	{ label: '\ud83d\ude0a', title: 'Smileys', emojis: ['\ud83d\ude00','\ud83d\ude02','\ud83d\ude0d','\ud83e\udd70','\ud83d\ude0a','\ud83d\ude0e','\ud83e\udd29','\ud83d\ude2d','\ud83d\ude05','\ud83e\udd14','\ud83d\ude2c','\ud83d\ude44','\ud83d\ude34','\ud83e\udd79','\ud83d\ude07','\ud83e\udd23','\ud83d\ude06','\ud83d\ude0b','\ud83d\ude1b','\ud83e\udd72','\ud83e\udee0','\ud83d\ude24','\ud83d\ude29','\ud83d\ude22','\ud83d\ude21','\ud83e\udd2f','\ud83e\udd73','\ud83d\ude0f','\ud83e\udee1','\ud83d\ude10'] },
+	{ label: '\ud83d\udcda', title: 'Books & Reading', emojis: ['\ud83d\udcda','\ud83d\udcd6','\ud83d\udcdd','\u270f\ufe0f','\ud83d\udd8a\ufe0f','\ud83d\udd8b\ufe0f','\ud83d\udcd3','\ud83d\udcd4','\ud83d\udcd2','\ud83d\udcd5','\ud83d\udcd7','\ud83d\udcd8','\ud83d\udcd9','\ud83d\uddd2\ufe0f','\ud83d\udcc4','\ud83d\udcc3','\ud83d\udcd1','\ud83d\udd16','\ud83c\udff7\ufe0f','\ud83d\udca1','\ud83e\udde0','\ud83d\udc53','\ud83d\udd0d','\u2728','\ud83d\udcac','\ud83d\udcad','\ud83d\udde8\ufe0f','\ud83d\udcaf','\u2b50','\ud83c\udf1f'] },
+	{ label: '\ud83d\udc4d', title: 'Gestures', emojis: ['\ud83d\udc4d','\ud83d\udc4e','\ud83d\udc4f','\ud83d\ude4c','\ud83e\udd1d','\ud83e\udef6','\u2764\ufe0f','\ud83d\udc94','\ud83d\udc95','\ud83d\udc9e','\ud83d\udc96','\ud83d\udc97','\ud83d\udc93','\ud83d\udc98','\ud83d\udc9d','\ud83d\udd25','\u2705','\u274c','\u26a1','\ud83c\udf89','\ud83c\udf8a','\ud83c\udfaf','\ud83d\udcaa','\ud83e\udec2','\ud83d\udc40','\ud83e\udd26','\ud83e\udd37','\ud83d\udc80','\ud83e\udee3','\ud83d\ude2e'] },
+	{ label: '\ud83c\udf19', title: 'Nature & Time', emojis: ['\ud83c\udf19','\u2600\ufe0f','\u2b50','\ud83c\udf1f','\u2728','\ud83c\udf08','\u2601\ufe0f','\ud83c\udf27\ufe0f','\u2744\ufe0f','\ud83c\udf42','\ud83c\udf43','\ud83c\udf38','\ud83c\udf3a','\ud83c\udf3b','\ud83c\udf40','\ud83c\udf3f','\ud83e\udeb4','\ud83c\udf31','\ud83c\udf0a','\ud83c\udfd4\ufe0f','\ud83c\udf05','\ud83c\udf04','\ud83d\udd50','\u23f0','\ud83d\udcc5','\ud83d\uddd3\ufe0f','\u231b','\u23f3','\ud83d\udd2e','\ud83e\ude84'] },
+	{ label: '\ud83c\udfad', title: 'Fun & Reactions', emojis: ['\ud83d\udc80','\ud83d\ude2d','\ud83d\udc85','\ud83d\udc7b','\ud83e\udd21','\ud83e\udee0','\ud83e\udd74','\ud83e\udd22','\ud83d\ude35','\ud83e\udd2e','\ud83e\udee5','\ud83d\ude36','\ud83e\udd2b','\ud83e\uddd0','\ud83e\udd13','\ud83d\udc7d','\ud83e\udd16','\ud83d\udca9','\ud83e\udef6','\ud83d\ude4f','\ud83e\udd1e','\u270c\ufe0f','\ud83e\udd1f','\ud83e\udd19','\ud83d\udc48','\ud83d\udc49','\ud83d\udc46','\ud83d\udc47','\u261d\ufe0f','\u270b'] },
 ];
+
+
+// ─── Jump-to-page modal ──────────────────────────────────────────────────────
+function JumpModal({ currentPage, totalPages, onJump, onClose }) {
+	const [val, setVal] = useState(String(currentPage));
+	const inputRef = useRef();
+	useEffect(() => { setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 60); }, []);
+	const submit = () => { const n = parseInt(val); if (!isNaN(n) && n >= 1 && n <= totalPages) { onJump(n); onClose(); } };
+	return (
+		<div className="jump-modal-bg" onClick={onClose}>
+			<div className="jump-modal" onClick={e => e.stopPropagation()}>
+				<p style={{ fontFamily: "'Lora',serif", fontWeight: 700, fontSize: '1rem', color: 'var(--ink)', marginBottom: '0.75rem', textAlign: 'center' }}>Jump to page</p>
+				<div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+					<input ref={inputRef} type="number" min={1} max={totalPages} value={val}
+						onChange={e => setVal(e.target.value)}
+						onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose(); }}
+						style={{ flex: 1, padding: '0.65rem 0.75rem', border: '1.5px solid var(--amber)', borderRadius: 10, fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', background: 'var(--paper)', outline: 'none', fontFamily: "'Lora',serif", textAlign: 'center' }} />
+					<span style={{ color: 'var(--ink-faint)', fontSize: '0.85rem' }}>/ {totalPages}</span>
+					<button onClick={submit} style={{ padding: '0.65rem 1.1rem', background: 'linear-gradient(135deg,var(--amber),var(--amber-glow))', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>Go</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// ─── Floating emoji reactions ─────────────────────────────────────────────────
+function FloatingReactions({ items }) {
+	return (
+		<div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
+			{items.map(r => (
+				<div key={r.id} className="reaction-float" style={{ position: 'absolute', left: r.x, top: r.y, fontSize: '2.2rem', userSelect: 'none', lineHeight: 1 }}>{r.emoji}</div>
+			))}
+		</div>
+	);
+}
+
+// ─── Reaction popup (long-press) ─────────────────────────────────────────────
+const QUICK_REACTIONS = ['❤️','😂','🤯','😭','👏','🔥'];
+function ReactionPopup({ x, y, onReact, onReply, onClose }) {
+	const ref = useRef();
+	useEffect(() => {
+		const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+		setTimeout(() => document.addEventListener('mousedown', h), 0);
+		return () => document.removeEventListener('mousedown', h);
+	}, [onClose]);
+	return (
+		<div ref={ref} className="toast-pop" style={{ position: 'fixed', top: Math.max(y-60,60), left: Math.min(x, window.innerWidth-230), zIndex: 99, background: '#fff', borderRadius: 14, boxShadow: '0 8px 32px rgba(26,18,8,0.18)', border: '1px solid var(--paper-deep)', padding: '0.45rem', display: 'flex', gap: 3, alignItems: 'center' }}>
+			{QUICK_REACTIONS.map(e => (
+				<button key={e} onClick={() => { onReact(e); onClose(); }} style={{ fontSize: '1.2rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 5px', borderRadius: 8 }}
+					onMouseOver={ev => ev.currentTarget.style.transform='scale(1.3)'} onMouseOut={ev => ev.currentTarget.style.transform='scale(1)'}>{e}</button>
+			))}
+			<div style={{ width: 1, height: 20, background: 'var(--paper-deep)', margin: '0 2px' }} />
+			<button onClick={() => { onReply(); onClose(); }} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>Reply</button>
+		</div>
+	);
+}
 
 function EmojiPicker({ onSelect, onClose }) {
 	const [activeTab, setActiveTab] = useState(0);
@@ -758,23 +878,53 @@ function EmojiPicker({ onSelect, onClose }) {
 	);
 }
 
-// ─── Chat Sidebar ─────────────────────────────────────────────────────────────
-function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile }) {
+// \u2500\u2500\u2500 Chat Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle }) {
 	const [text, setText] = useState('');
 	const [emojiOpen, setEmojiOpen] = useState(false);
+	const [replyTo, setReplyTo] = useState(null);
+	const [reactions, setReactions] = useState({});
+	const [popup, setPopup] = useState(null);
+	const [inputOffset, setInputOffset] = useState(0);
 	const endRef = useRef();
 	const inputRef = useRef();
 
 	useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 	useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80); }, []);
 
+	useEffect(() => {
+		if (!isMobile || !window.visualViewport) return;
+		const h = () => setInputOffset(Math.max(0, window.innerHeight - window.visualViewport.height - 10));
+		window.visualViewport.addEventListener('resize', h);
+		window.visualViewport.addEventListener('scroll', h);
+		return () => { window.visualViewport.removeEventListener('resize', h); window.visualViewport.removeEventListener('scroll', h); };
+	}, [isMobile]);
+
+	useEffect(() => {
+		const el = inputRef.current; if (!el) return;
+		el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+	}, [text]);
+
 	const send = () => {
 		if (!text.trim()) return;
-		onSend(text.trim());
+		onSend(text.trim(), replyTo);
 		setText('');
+		setReplyTo(null);
 		setEmojiOpen(false);
-		inputRef.current?.focus();
+		haptic(8);
+		setTimeout(() => inputRef.current?.focus(), 10);
 	};
+	const addReaction = (msgId, emoji) => setReactions(r => {
+		const ex = r[msgId] || []; if (ex.includes(emoji)) return r;
+		return { ...r, [msgId]: [...ex, emoji] };
+	});
+
+	const grouped = messages.map((msg, i) => {
+		const prev = messages[i - 1];
+		return { ...msg, isGrouped: !!(prev && prev.userId === msg.userId && (msg.ts - prev.ts) < 60000) };
+	});
+
+
 
 	const insertEmoji = (emoji) => {
 		const el = inputRef.current;
@@ -787,7 +937,7 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 	};
 
 	const inner = (
-		<>
+		<div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: isMobile ? inputOffset : 0 }}>
 			{isMobile && <div className="sheet-handle" />}
 			{/* Header */}
 			<div style={{ padding: '0.9rem 1.1rem', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, background: 'rgba(247,242,234,0.6)' }}>
@@ -799,7 +949,7 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 						<p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.2 }}>{partner.name || 'Partner'}</p>
 						<p style={{ fontSize: '0.64rem', color: 'var(--sage)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
 							<span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
-							Online · Page {(partner.page ?? 0) + 1}
+							Online \u00b7 Page {(partner.page ?? 0) + 1}
 						</p>
 					</div>
 				</div>
@@ -807,7 +957,7 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 					style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-faint)', fontSize: '0.85rem', cursor: 'pointer' }}
 					onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = '#fff'; }}
 					onMouseOut={(e) => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.color = 'var(--ink-faint)'; }}>
-					✕
+					\u2715
 				</button>
 			</div>
 
@@ -815,27 +965,34 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 			<div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
 				{messages.length === 0 && (
 					<div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-						<div style={{ fontSize: '2rem', marginBottom: '0.75rem', animation: 'floatBob 3s ease-in-out infinite' }}>✍️</div>
-						<p style={{ color: 'var(--ink-faint)', fontSize: '0.82rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.6 }}>Start the conversation…</p>
+						<div style={{ fontSize: '2rem', marginBottom: '0.75rem', animation: 'floatBob 3s ease-in-out infinite' }}>\u270d\ufe0f</div>
+						<p style={{ color: 'var(--ink-faint)', fontSize: '0.82rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.6 }}>Start the conversation\u2026</p>
 					</div>
 				)}
-				{messages.map((msg) => {
-					const isMe = msg.userId !== partner.userId;
+				{grouped.map((msg, i) => {
+					const isMe = msg.userId === myUserId;
+					const msgReactions = reactions[msg.id] || [];
 					return (
-						<div key={msg.id} className="msg-bubble" style={{ display: 'flex', gap: '0.4rem', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-							{!isMe && (
-								<div style={{ width: 24, height: 24, borderRadius: '50%', background: msg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.6rem', color: '#fff', flexShrink: 0 }}>
-									{msg.name?.[0]?.toUpperCase()}
-								</div>
-							)}
-							<div style={{ maxWidth: '76%', display: 'flex', flexDirection: 'column', gap: 3, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-								<div style={{ padding: '0.5rem 0.85rem', background: isMe ? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)' : 'var(--paper)', borderRadius: isMe ? '14px 14px 3px 14px' : '14px 14px 14px 3px', color: isMe ? '#fff' : 'var(--ink)', fontSize: '0.9rem', lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--paper-deep)', wordBreak: 'break-word' }}>
-									{msg.text}
-								</div>
-								<div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.2rem' }}>
-									<span style={{ color: 'var(--ink-faint)', fontSize: '0.6rem' }}>{timeAgo(msg.ts)}</span>
-									<span style={{ color: 'var(--paper-deep)', fontSize: '0.6rem', background: 'var(--paper-mid)', borderRadius: 3, padding: '0 4px' }}>p.{msg.page + 1}</span>
-								</div>
+						<div key={msg.id} className="msg-bubble msg-row"
+							style={{ display: 'flex', gap: '0.35rem', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: msg.isGrouped ? 1 : 6 }}
+							onContextMenu={e => { e.preventDefault(); setPopup({ msgId: msg.id, x: e.clientX, y: e.clientY }); }}
+							onTouchStart={e => {
+								const timer = setTimeout(() => { const t = e.touches[0]; setPopup({ msgId: msg.id, x: t.clientX, y: t.clientY }); haptic(14); }, 480);
+								const cancel = () => clearTimeout(timer);
+								e.currentTarget.addEventListener('touchend', cancel, { once: true });
+								e.currentTarget.addEventListener('touchmove', cancel, { once: true });
+							}}>
+							{!isMe && !msg.isGrouped && <div style={{ width: 22, height: 22, borderRadius: '50%', background: msg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.58rem', color: '#fff', flexShrink: 0 }}>{msg.name?.[0]?.toUpperCase()}</div>}
+							{!isMe && msg.isGrouped && <div style={{ width: 22, flexShrink: 0 }} />}
+							<div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 2, alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+								{msg.replyTo && <div style={{ padding: '0.25rem 0.6rem', background: 'var(--paper-deep)', borderRadius: 8, fontSize: '0.72rem', color: 'var(--ink-soft)', borderLeft: '2px solid var(--amber)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>↩ {msg.replyTo.text?.slice(0,40)}{msg.replyTo.text?.length > 40 ? '…' : ''}</div>}
+								<div style={{ padding: '0.45rem 0.8rem', background: isMe ? 'linear-gradient(135deg, var(--amber) 0%, var(--amber-glow) 100%)' : 'var(--paper)', borderRadius: isMe ? '14px 14px 3px 14px' : '14px 14px 14px 3px', color: isMe ? '#fff' : 'var(--ink)', fontSize: '0.88rem', lineHeight: 1.5, border: isMe ? 'none' : '1px solid var(--paper-deep)', wordBreak: 'break-word' }}>{msg.text}</div>
+								{msgReactions.length > 0 && <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>{msgReactions.map((e, ei) => <span key={ei} style={{ fontSize: '0.85rem', background: 'var(--paper-mid)', border: '1px solid var(--paper-deep)', borderRadius: 10, padding: '1px 5px' }}>{e}</span>)}</div>}
+								{!msg.isGrouped && <div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.2rem', alignItems: 'center' }}>
+									<span style={{ color: 'var(--ink-faint)', fontSize: '0.58rem' }}>{timeAgo(msg.ts)}</span>
+									<span style={{ color: 'var(--paper-deep)', fontSize: '0.58rem', background: 'var(--paper-mid)', borderRadius: 3, padding: '0 4px' }}>p.{msg.page + 1}</span>
+									{isMe && i === messages.length - 1 && <span style={{ color: 'var(--ink-faint)', fontSize: '0.55rem' }}>✓</span>}
+								</div>}
 							</div>
 						</div>
 					);
@@ -843,8 +1000,14 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 				<div ref={endRef} />
 			</div>
 
+			{replyTo && (
+				<div style={{ padding: '0.4rem 0.75rem', background: 'rgba(194,120,58,0.08)', borderTop: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+					<div style={{ flex: 1, fontSize: '0.75rem', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ color: 'var(--amber)', fontWeight: 700 }}>↩ Reply: </span>{replyTo.text?.slice(0, 50)}</div>
+					<button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+				</div>
+			)}
 			{/* Input */}
-			<div style={{ padding: '0.75rem', borderTop: '1px solid var(--paper-deep)', flexShrink: 0 }}>
+			<div style={{ padding: '0.6rem', borderTop: '1px solid var(--paper-deep)', flexShrink: 0, background: '#fff' }}>
 				<div
 					style={{ position: 'relative', display: 'flex', gap: '0.4rem', alignItems: 'flex-end', background: 'var(--paper)', border: '1.5px solid var(--paper-deep)', borderRadius: 14, padding: '0.45rem 0.45rem 0.45rem 0.85rem', transition: 'border-color 0.2s' }}
 					onFocusCapture={(e) => (e.currentTarget.style.borderColor = 'var(--amber)')}
@@ -854,7 +1017,7 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 						value={text}
 						onChange={(e) => setText(e.target.value)}
 						onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-						placeholder={`Message ${partner.name || 'partner'}…`}
+						placeholder={`Message ${partner.name || 'partner'}\u2026`}
 						rows={1}
 						style={{ flex: 1, background: 'transparent', resize: 'none', color: 'var(--ink)', fontSize: '0.875rem', lineHeight: 1.5, fontFamily: "'Lora', serif", maxHeight: 100, overflowY: 'auto', outline: 'none', border: 'none' }}
 					/>
@@ -862,26 +1025,27 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 						{emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={() => setEmojiOpen(false)} />}
 						<button onClick={() => setEmojiOpen((v) => !v)} title="Emoji"
 							style={{ width: 30, height: 30, borderRadius: 9, border: 'none', background: emojiOpen ? 'var(--paper-deep)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', transition: 'background 0.15s' }}>
-							😊
+							\ud83d\ude0a
 						</button>
 					</div>
-					<button onClick={send} disabled={!text.trim()}
+					{text.length > 420 && <span style={{ fontSize: '0.58rem', color: text.length > 480 ? '#e05c4a' : 'var(--ink-faint)', alignSelf: 'center', marginRight: 2 }}>{500 - text.length}</span>}
+						<button onClick={send} onTouchEnd={e => { e.preventDefault(); send(); }} disabled={!text.trim()}
 						style={{ width: 32, height: 32, borderRadius: 10, border: 'none', flexShrink: 0, background: text.trim() ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s', cursor: text.trim() ? 'pointer' : 'not-allowed' }}>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? '#fff' : 'var(--ink-faint)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
 							<path d="M12 19V5M5 12l7-7 7 7" />
 						</svg>
 					</button>
 				</div>
-				<p style={{ color: 'var(--ink-faint)', fontSize: '0.62rem', textAlign: 'center', marginTop: '0.3rem' }}>Enter to send · Shift+Enter for new line</p>
+				<p style={{ color: 'var(--ink-faint)', fontSize: '0.62rem', textAlign: 'center', marginTop: '0.3rem' }}>Enter to send \u00b7 Shift+Enter for new line</p>
 			</div>
-		</>
+		</div>
 	);
 
 	if (isMobile) {
 		return (
 			<>
 				<div className="sheet-backdrop" onClick={onClose} />
-				<div className="side-sheet light-sheet bottom-sheet" style={{ maxHeight: '85vh' }}>
+				<div className="side-sheet light-sheet bottom-sheet" style={{ maxHeight: '90vh' }}>
 					{inner}
 				</div>
 			</>
@@ -895,7 +1059,7 @@ function ChatSidebar({ messages, partner, currentPage, onSend, onClose, isMobile
 	);
 }
 
-// ─── Spotify Logo ─────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Spotify Logo \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function SpotifyLogo({ size = 24, color = 'currentColor' }) {
 	return (
 		<svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -904,14 +1068,14 @@ function SpotifyLogo({ size = 24, color = 'currentColor' }) {
 	);
 }
 
-// ─── PKCE helpers ─────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 PKCE helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function _b64url(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
 async function _challenge(v) { return _b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))); }
 function _rand(n) { const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; return Array.from(crypto.getRandomValues(new Uint8Array(n))).map((b) => ch[b % ch.length]).join(''); }
 
 const SP_SCOPES = ['user-read-currently-playing','user-read-playback-state','user-modify-playback-state','user-read-recently-played'].join(' ');
 
-// ─── useSpotifyPlayer ─────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 useSpotifyPlayer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function useSpotifyPlayer({ roomId, clientId, redirectUri, onTrackChange }) {
 	const [token, setToken] = useState(() => sessionStorage.getItem('sp_np_token') || null);
 	const [nowPlaying, setNowPlaying] = useState(null);
@@ -1013,7 +1177,7 @@ function useSpotifyPlayer({ roomId, clientId, redirectUri, onTrackChange }) {
 	return { token, nowPlaying, error, controlling, login, logout, play, pause, next, prev, seek, setVol };
 }
 
-// ─── Music Sidebar ────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Music Sidebar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile }) {
 	const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
 	const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT || window.location.origin + '/';
@@ -1059,7 +1223,7 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 						Disconnect
 					</button>
 				)}
-				<button onClick={onClose} className="sp-btn" style={{ width: 30, height: 30, color: '#777', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', fontSize: '0.82rem' }}>✕</button>
+				<button onClick={onClose} className="sp-btn" style={{ width: 30, height: 30, color: '#777', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', fontSize: '0.82rem' }}>\u2715</button>
 			</div>
 
 			{!sp.token ? (
@@ -1070,16 +1234,16 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 					</div>
 					<div style={{ maxWidth: 280 }}>
 						<p style={{ color: '#fff', fontFamily: "'Lora',serif", fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.6rem', lineHeight: 1.3 }}>Listen Together</p>
-						<p style={{ color: '#a0a0a0', fontSize: '0.82rem', lineHeight: 1.75 }}>Connect Spotify once. Play anything on your phone, laptop, or any device — it syncs live to your reading partner.</p>
+						<p style={{ color: '#a0a0a0', fontSize: '0.82rem', lineHeight: 1.75 }}>Connect Spotify once. Play anything on your phone, laptop, or any device \u2014 it syncs live to your reading partner.</p>
 					</div>
 					{!clientId && (
 						<div style={{ width: '100%', background: 'rgba(224,92,74,0.1)', border: '1px solid rgba(224,92,74,0.25)', borderRadius: 10, padding: '0.65rem 0.9rem' }}>
-							<p style={{ color: '#e05c4a', fontSize: '0.73rem', fontWeight: 600 }}>⚠ VITE_SPOTIFY_CLIENT_ID not set in .env</p>
+							<p style={{ color: '#e05c4a', fontSize: '0.73rem', fontWeight: 600 }}>\u26a0 VITE_SPOTIFY_CLIENT_ID not set in .env</p>
 						</div>
 					)}
 					{sp.error && (
 						<div style={{ width: '100%', background: 'rgba(224,92,74,0.1)', border: '1px solid rgba(224,92,74,0.25)', borderRadius: 10, padding: '0.65rem 0.9rem' }}>
-							<p style={{ color: '#e05c4a', fontSize: '0.73rem' }}>⚠ {sp.error}</p>
+							<p style={{ color: '#e05c4a', fontSize: '0.73rem' }}>\u26a0 {sp.error}</p>
 						</div>
 					)}
 					<button onClick={sp.login} disabled={!clientId}
@@ -1103,7 +1267,7 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 					<div style={{ padding: '1.5rem 1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
 						<div style={{ position: 'relative' }}>
 							<div style={{ width: isMobile ? 140 : 180, height: isMobile ? 140 : 180, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)', transition: 'transform 0.3s', transform: display.isPlaying ? 'scale(1)' : 'scale(0.94)' }}>
-								{display.albumArt ? <img src={display.albumArt} alt="Album art" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: '#1f1f1f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>🎵</div>}
+								{display.albumArt ? <img src={display.albumArt} alt="Album art" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: '#1f1f1f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>\ud83c\udfb5</div>}
 							</div>
 							{isLocal && display.isPlaying && (
 								<div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '3px 9px', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1193,7 +1357,7 @@ function MusicSidebar({ roomId, syncedTrack, onTrackChange, onClose, isMobile })
 	);
 }
 
-// ─── Recursive chapter outline flattener ─────────────────────────────────────
+// \u2500\u2500\u2500 Recursive chapter outline flattener \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async function extractChapters(pdfDoc) {
 	try {
 		const outline = await pdfDoc.getOutline();
@@ -1216,11 +1380,13 @@ async function extractChapters(pdfDoc) {
 	} catch (e) { console.warn('Could not extract chapters:', e); return []; }
 }
 
-// ─── ReaderPage ───────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 ReaderPage \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 export default function ReaderPage() {
 	useEffect(() => { injectReaderStyles(); }, []);
 
 	const isMobile = useIsMobile();
+	const isOnline = useOnline();
+	useWakeLock();
 	const { session, navigate, setSession, user } = useApp();
 	const { userId, name, color, roomId, partner } = session || {};
 
@@ -1235,6 +1401,11 @@ export default function ReaderPage() {
 	const [tocOpen, setTocOpen] = useState(false);
 	const [musicOpen, setMusicOpen] = useState(false);
 	const [musicSyncTrack, setMusicSyncTrack] = useState(null);
+	const [jumpOpen, setJumpOpen] = useState(false);
+	const [theme, setTheme] = useState(0);
+	const [turnDir, setTurnDir] = useState(null);
+	const [floatingReactions, setFloatingReactions] = useState([]);
+	const { zoom, resetZoom, pinchHandlers } = usePinchZoom(isMobile);
 
 	useEffect(() => {
 		if (!roomId) return;
@@ -1278,6 +1449,7 @@ export default function ReaderPage() {
 	const prevMsgCount = useRef(0);
 	const scrollRef = useRef();
 	const restoredRef = useRef(false);
+	const lastTapRef = useRef(0);
 
 	useEffect(() => {
 		if (loaded && !restoredRef.current) { restoredRef.current = true; const p = Math.max(1, Math.min(myPage + 1, totalPages || 9999)); setCurrentPage(p); }
@@ -1298,25 +1470,30 @@ export default function ReaderPage() {
 	const openToc = useCallback(() => { setTocOpen((v) => { if (!v) { setChatOpen(false); setMusicOpen(false); } return !v; }); }, []);
 	const openMusic = useCallback(() => { setMusicOpen((v) => { if (!v) { setChatOpen(false); setTocOpen(false); } return !v; }); }, []);
 
-	const goToPage = useCallback((p) => {
+	const cycleTheme = useCallback(() => setTheme(t => (t + 1) % 3), []);
+
+	const goToPage = useCallback((p, dir = null) => {
 		if (totalPages === 0) return;
 		const next = Math.max(1, Math.min(totalPages, p));
+		setTurnDir(dir);
 		setCurrentPage(next);
 		savePage(next - 1);
+		haptic(6);
+		setTimeout(() => setTurnDir(null), 300);
 	}, [totalPages, savePage]);
 
 	const syncToPartner = () => { goToPage(partnerPage + 1); setSyncFlash(true); setTimeout(() => setSyncFlash(false), 2000); };
 
 	const handleSwipeLeft = useCallback(() => {
 		if (!isMobile || totalPages === 0) return;
-		goToPage(currentPage + 1);
+		goToPage(currentPage + 1, 'left');
 		setSwipeHint('left');
 		setTimeout(() => setSwipeHint(null), 500);
 	}, [isMobile, totalPages, currentPage, goToPage]);
 
 	const handleSwipeRight = useCallback(() => {
 		if (!isMobile || totalPages === 0) return;
-		goToPage(currentPage - 1);
+		goToPage(currentPage - 1, 'right');
 		setSwipeHint('right');
 		setTimeout(() => setSwipeHint(null), 500);
 	}, [isMobile, totalPages, currentPage, goToPage]);
@@ -1324,7 +1501,26 @@ export default function ReaderPage() {
 	const swipeHandlers = useSwipe(handleSwipeLeft, handleSwipeRight);
 
 	const handleTrackChange = useCallback((track) => { if (!roomId) return; saveMusicState(roomId, { ...track, sentAt: Date.now() }).catch(console.error); }, [roomId]);
-	const handleSend = useCallback((text) => { firebaseSend(text, currentPage - 1); }, [firebaseSend, currentPage]);
+	const handleDoubleTap = useCallback((e) => {
+		if (!isMobile) return;
+		const now = Date.now();
+		if (now - lastTapRef.current < 350) {
+			const t = e.changedTouches?.[0] || e;
+			const emoji = ['❤️','🔥','😂','🤯'][Math.floor(Math.random() * 4)];
+			const id = Date.now();
+			setFloatingReactions(r => [...r, { id, emoji, x: t.clientX - 20, y: t.clientY - 40 }]);
+			haptic(10);
+			setTimeout(() => setFloatingReactions(r => r.filter(x => x.id !== id)), 1300);
+		}
+		lastTapRef.current = now;
+	}, [isMobile]);
+
+	const handleTouchEnd = useCallback((e) => {
+		swipeHandlers.onTouchEnd(e);
+		handleDoubleTap(e);
+	}, [swipeHandlers, handleDoubleTap]);
+
+	const handleSend = useCallback((text, replyTo = null) => { firebaseSend(text, currentPage - 1, replyTo); }, [firebaseSend, currentPage]);
 
 	const handleEndRoom = async () => {
 		setEnding(true);
@@ -1333,10 +1529,11 @@ export default function ReaderPage() {
 	};
 
 	const progress = totalPages > 1 ? ((currentPage - 1) / (totalPages - 1)) * 100 : 100;
+	const themeClass = theme === 1 ? 'theme-sepia' : theme === 2 ? 'theme-dark' : '';
 	const pagesDiff = Math.abs(partnerPage + 1 - currentPage);
 	const partnerObj = { ...(partner || {}), ...(livePartner || {}), page: partnerPage };
 	const me = { name, color };
-	const bookTitle = session?.book?.title || 'Reading…';
+	const bookTitle = session?.book?.title || 'Reading\u2026';
 
 	// Mobile bottom nav bottom padding
 	const mobileNavHeight = isMobile ? 72 : 0;
@@ -1345,7 +1542,7 @@ export default function ReaderPage() {
 		return (
 			<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)', gap: '1rem', flexDirection: 'column' }}>
 				<p style={{ color: 'var(--ink-faint)', fontStyle: 'italic' }}>No session found.</p>
-				<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
+				<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>\u2190 Go Home</button>
 			</div>
 		);
 	}
@@ -1355,32 +1552,35 @@ export default function ReaderPage() {
 	return (
 		<div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper)', overflow: 'hidden' }}>
 			{showEndDialog && <EndRoomDialog onConfirm={handleEndRoom} onCancel={() => setShowEndDialog(false)} />}
+		{jumpOpen && <JumpModal currentPage={currentPage} totalPages={totalPages} onJump={p => goToPage(p)} onClose={() => setJumpOpen(false)} />}
+		<FloatingReactions items={floatingReactions} />
+		{!isOnline && <div className="offline-banner" style={{ background: '#e05c4a', color: '#fff', padding: '6px 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, zIndex: 30 }}>📡 No internet — sync paused</div>}
 
 			{/* Top bar */}
 			<header style={{ height: 48, flexShrink: 0, zIndex: 20, background: 'rgba(247,242,234,0.97)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.9rem' }}>
 				{_amHost ? (
 					<button onClick={() => setShowEndDialog(true)} disabled={ending}
 						style={{ color: ending ? 'var(--ink-faint)' : '#c0392b', fontSize: '0.75rem', fontWeight: 600, background: 'none', border: '1.5px solid currentColor', borderRadius: 100, padding: '3px 8px', cursor: 'pointer', opacity: ending ? 0.5 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
-						{ending ? 'Ending…' : 'End Room'}
+						{ending ? 'Ending\u2026' : 'End Room'}
 					</button>
 				) : (
 					<button onClick={() => navigate('home')}
 						style={{ color: 'var(--ink-faint)', fontSize: '0.75rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
 						onMouseOver={(e) => (e.currentTarget.style.color = 'var(--amber)')}
 						onMouseOut={(e) => (e.currentTarget.style.color = 'var(--ink-faint)')}>
-						← Leave
+						\u2190 Leave
 					</button>
 				)}
 
-				<span style={{ color: 'var(--paper-deep)', flexShrink: 0 }}>·</span>
+				<span style={{ color: 'var(--paper-deep)', flexShrink: 0 }}>\u00b7</span>
 				<span style={{ fontFamily: "'Lora', serif", fontSize: '0.95rem', fontWeight: 700, color: 'var(--ink)', flexShrink: 0 }}>
 					Page<em style={{ fontStyle: 'italic', color: 'var(--amber)' }}>Turn</em>
 				</span>
 
-				{/* Book title — hidden on very small screens */}
+				{/* Book title \u2014 hidden on very small screens */}
 				{!isMobile && (
 					<>
-						<span style={{ color: 'var(--paper-deep)' }}>·</span>
+						<span style={{ color: 'var(--paper-deep)' }}>\u00b7</span>
 						<span style={{ fontFamily: "'Crimson Pro', serif", fontStyle: 'italic', color: 'var(--ink-soft)', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
 							{bookTitle}
 						</span>
@@ -1395,7 +1595,7 @@ export default function ReaderPage() {
 					<span style={{ color: 'var(--ink-faint)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.05em' }}>#{roomId}</span>
 				</div>
 
-				{/* Progress — desktop only */}
+				{/* Progress \u2014 desktop only */}
 				{totalPages > 0 && !isMobile && (
 					<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
 						<div style={{ width: 60, height: 3, background: 'var(--paper-deep)', borderRadius: 3 }}>
@@ -1410,7 +1610,7 @@ export default function ReaderPage() {
 
 			{/* Body */}
 			<div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-				{/* TOC — left (desktop inline / mobile sheet) */}
+				{/* TOC \u2014 left (desktop inline / mobile sheet) */}
 				{tocOpen && (
 					<TocSidebar
 						chapters={chapters}
@@ -1427,13 +1627,13 @@ export default function ReaderPage() {
 					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}
 					{...(isMobile ? swipeHandlers : {})}>
 
-					{/* Swipe direction flash — mobile only */}
+					{/* Swipe direction flash \u2014 mobile only */}
 					{isMobile && swipeHint && (
 						<div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'flex', alignItems: 'center', justifyContent: swipeHint === 'left' ? 'flex-end' : 'flex-start', padding: '0 1.5rem', pointerEvents: 'none' }}>
 							<div
 								className={swipeHint === 'left' ? 'swipe-hint-left' : 'swipe-hint-right'}
 								style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(26,18,8,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem' }}>
-								{swipeHint === 'left' ? '›' : '‹'}
+								{swipeHint === 'left' ? '\u203a' : '\u2039'}
 							</div>
 						</div>
 					)}
@@ -1448,7 +1648,7 @@ export default function ReaderPage() {
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
 								<div style={{ width: 32, height: 32, border: '3px solid var(--paper-deep)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
 								<p style={{ color: 'var(--ink-faint)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-									{downloadPct > 0 && downloadPct < 100 ? 'Downloading book…' : downloadPct === 100 ? 'Rendering PDF…' : 'Loading…'}
+									{downloadPct > 0 && downloadPct < 100 ? 'Downloading book\u2026' : downloadPct === 100 ? 'Rendering PDF\u2026' : 'Loading\u2026'}
 								</p>
 								{downloadPct > 0 && (
 									<div style={{ width: 200 }}>
@@ -1461,8 +1661,8 @@ export default function ReaderPage() {
 							</div>
 						) : pdfError ? (
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem', minHeight: 300 }}>
-								<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>⚠️ {pdfError}</p>
-								<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
+								<p style={{ color: '#c0392b', fontSize: '0.95rem', textAlign: 'center' }}>\u26a0\ufe0f {pdfError}</p>
+								<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>\u2190 Go Home</button>
 							</div>
 						) : pdfDoc ? (
 							<PdfPage pdfDoc={pdfDoc} pageNum={currentPage} />
@@ -1475,17 +1675,17 @@ export default function ReaderPage() {
 							<div style={{ width: 7, height: 7, borderRadius: '50%', background: partner?.color, flexShrink: 0 }} />
 							<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{partner?.name} on p.{partnerPage + 1}</span>
 							<button onClick={syncToPartner} style={{ color: 'var(--amber)', fontWeight: 700, fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px dotted var(--amber)', padding: '0 1px', lineHeight: 1, flexShrink: 0 }}>
-								{syncFlash ? '✓' : '→'}
+								{syncFlash ? '\u2713' : '\u2192'}
 							</button>
 						</div>
 					)}
 
-					{/* Desktop page nav — bottom of reading area, shown only on desktop */}
+					{/* Desktop page nav \u2014 bottom of reading area, shown only on desktop */}
 					{totalPages > 0 && !isMobile && (
 						<div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.75rem 2rem 1.25rem', background: 'linear-gradient(to top, rgba(247,242,234,1) 60%, rgba(247,242,234,0))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
 							<button className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}
 								style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${currentPage <= 1 ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage <= 1 ? 'transparent' : 'var(--ink)', color: currentPage <= 1 ? 'var(--paper-deep)' : '#fff', fontSize: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer' }}>
-								‹
+								\u2039
 							</button>
 							<div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
 								<input type="number" min={1} max={totalPages} value={currentPage}
@@ -1497,13 +1697,13 @@ export default function ReaderPage() {
 							</div>
 							<button className="page-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}
 								style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${currentPage >= totalPages ? 'var(--paper-deep)' : 'var(--ink)'}`, background: currentPage >= totalPages ? 'transparent' : 'var(--ink)', color: currentPage >= totalPages ? 'var(--paper-deep)' : '#fff', fontSize: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer' }}>
-								›
+								\u203a
 							</button>
 						</div>
 					)}
 				</div>
 
-				{/* Chat — right (desktop inline / mobile sheet) */}
+				{/* Chat \u2014 right (desktop inline / mobile sheet) */}
 				{chatOpen && (
 					<ChatSidebar
 						messages={messages}
@@ -1515,7 +1715,7 @@ export default function ReaderPage() {
 					/>
 				)}
 
-				{/* Music — right (desktop inline / mobile sheet) */}
+				{/* Music \u2014 right (desktop inline / mobile sheet) */}
 				{musicOpen && (
 					<MusicSidebar
 						roomId={roomId}
@@ -1536,7 +1736,7 @@ export default function ReaderPage() {
 				hasChapters={chapters.length > 0} spotifyConnected={!!musicSyncTrack} nowPlaying={!!musicSyncTrack?.isPlaying}
 			/>
 
-			{/* Progress strip — mobile only, sits above the nav bar */}
+			{/* Progress strip \u2014 mobile only, sits above the nav bar */}
 			{isMobile && totalPages > 0 && (
 				<div style={{ height: 2, background: 'var(--paper-deep)', flexShrink: 0 }}>
 					<div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--amber), var(--amber-glow))', transition: 'width 0.4s ease' }} />
@@ -1545,6 +1745,7 @@ export default function ReaderPage() {
 
 			{/* Mobile bottom nav bar */}
 			<MobileNavBar
+				theme={theme} onCycleTheme={cycleTheme} onJumpOpen={() => setJumpOpen(true)}
 				me={me} partner={partnerObj} partnerPage={partnerPage} currentPage={currentPage - 1}
 				unreadCount={unreadCount} onOpenChat={openChat} onOpenToc={openToc} onOpenMusic={openMusic}
 				tocOpen={tocOpen} chatOpen={chatOpen} musicOpen={musicOpen}
@@ -1555,4 +1756,3 @@ export default function ReaderPage() {
 			/>
 		</div>
 	);
-}
