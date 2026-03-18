@@ -107,7 +107,7 @@ export function useRoom({
 
 	// ── Send message ─────────────────────────────────────────────────────────────
 	const sendMessage = useCallback(
-		(text, page) => {
+		(text, page, replyTo = null) => {
 			if (!roomId || !myUserId) return;
 			dbSendMessage({
 				roomId,
@@ -116,6 +116,7 @@ export function useRoom({
 				color: myColor,
 				text,
 				page,
+				replyTo,
 			}).catch(console.error);
 		},
 		[roomId, myUserId, myName, myColor],

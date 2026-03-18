@@ -179,12 +179,20 @@ export function subscribeToProgress({ roomId, myUserId, partnerUserId, onChange 
 
 // ─── MESSAGES ─────────────────────────────────────────────────────────────────
 
-export async function sendMessage({ roomId, userId, name, color, text, page }) {
-  await addDoc(collection(db, "rooms", roomId, "messages"), {
+export async function sendMessage({ roomId, userId, name, color, text, page, replyTo }) {
+  await addDoc(collection(db, "rooms", roomId, "message"), {
     userId, name, color,
     text: text.slice(0, 2000),
     page: page ?? 0,
-    ts:   serverTimestamp(),
+    ts: serverTimestamp(),
+    ...(replyTo ? {
+      replyTo: {
+        id: replyTo.id,
+        userId: replyTo.userId,
+        name: replyTo.name,
+        text: replyTo.text?.slice(0, 200) ?? '',
+      }
+    } : {}),
   });
 }
 
