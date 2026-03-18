@@ -374,7 +374,6 @@ function PdfPage({ pdfDoc, pageNum, zoom = 1, themeClass }) {
 	const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
 
 	return (
-		// FIX: themeClass is applied here so the filter wraps only the page canvas
 		<div
 			className={themeClass || ''}
 			style={{
@@ -608,7 +607,6 @@ function FloatingBar({
 						</>
 					)}
 
-					{/* FIX: Theme cycle button added to desktop floating bar */}
 					<button onClick={onCycleTheme} title={THEMES[theme].tip}
 						style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', flexShrink: 0 }}>
 						{THEMES[theme].label}
@@ -717,7 +715,6 @@ function MobileNavBar({
 			)}
 
 			<div style={{ display: 'flex', alignItems: 'center', padding: '0.45rem 0.75rem', gap: '0.3rem' }}>
-				{/* Prev page */}
 				<button
 					className="page-btn"
 					onClick={onPrev}
@@ -726,10 +723,7 @@ function MobileNavBar({
 					‹
 				</button>
 
-				{/* Centre section */}
 				<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
-
-					{/* Page counter */}
 					<div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', borderRadius: 10, padding: '4px 10px', flexShrink: 0 }}>
 						<span style={{ fontFamily: "'Lora', serif", fontWeight: 800, fontSize: '1rem', color: 'var(--ink)', lineHeight: 1 }}>
 							{page1}
@@ -741,7 +735,6 @@ function MobileNavBar({
 
 					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
 
-					{/* Avatars */}
 					<div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
 						<div style={{ width: 28, height: 28, borderRadius: '50%', background: me.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.7rem', color: '#fff', border: '2px solid rgba(247,242,234,1)', zIndex: 2 }}>
 							{me.name?.[0]?.toUpperCase()}
@@ -754,10 +747,8 @@ function MobileNavBar({
 
 					<div style={{ width: 1, height: 22, background: 'var(--paper-deep)', flexShrink: 0 }} />
 
-					{/* Theme */}
 					<button onClick={onCycleTheme} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--paper-mid)', border: '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}>{THEMES[theme].label}</button>
 
-					{/* TOC */}
 					{hasChapters && (
 						<button onClick={onOpenToc}
 							style={{ width: 36, height: 36, borderRadius: '50%', background: tocOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--paper-mid)', border: tocOpen ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -767,7 +758,6 @@ function MobileNavBar({
 						</button>
 					)}
 
-					{/* Chat */}
 					<button onClick={onOpenChat}
 						style={{ width: 36, height: 36, borderRadius: '50%', background: chatOpen ? 'linear-gradient(135deg, var(--amber), var(--amber-glow))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, boxShadow: chatOpen ? '0 4px 18px rgba(194,120,58,0.4)' : '0 2px 8px rgba(26,18,8,0.2)' }}>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -780,7 +770,6 @@ function MobileNavBar({
 						)}
 					</button>
 
-					{/* Music */}
 					<button onClick={onOpenMusic}
 						style={{ width: 36, height: 36, borderRadius: '50%', background: musicOpen ? 'linear-gradient(135deg, #1DB954, #17a348)' : spotifyConnected ? '#1DB954' : 'var(--paper-mid)', border: musicOpen || spotifyConnected ? 'none' : '1.5px solid var(--paper-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: spotifyConnected ? '0 4px 16px rgba(29,185,84,0.35)' : 'none' }}>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill={musicOpen || spotifyConnected ? '#fff' : 'var(--ink-soft)'}>
@@ -789,7 +778,6 @@ function MobileNavBar({
 					</button>
 				</div>
 
-				{/* FIX: Next page button — was cut off by flex overflow; ensure it always renders */}
 				<button
 					className="page-btn"
 					onClick={onNext}
@@ -856,13 +844,13 @@ function ReactionPopup({ x, y, onReact, onReply, onClose }) {
 	}, [onClose]);
 	return (
 		<div ref={ref} className="toast-pop" style={{ position: 'fixed', top: Math.max(y-60,60), left: Math.min(x, window.innerWidth-230), zIndex: 99, background: '#fff', borderRadius: 14, boxShadow: '0 8px 32px rgba(26,18,8,0.18)', border: '1px solid var(--paper-deep)', padding: '0.45rem', display: 'flex', gap: 3, alignItems: 'center' }}>
-			{QUICK_REACTIONS.map(e => (
-				<button key={e} onClick={() => { onReact(e); onClose(); }} style={{ fontSize: '1.2rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 5px', borderRadius: 8 }}
-					onMouseOver={ev => ev.currentTarget.style.transform='scale(1.3)'} onMouseOut={ev => ev.currentTarget.style.transform='scale(1)'}>{e}</button>
-			))}
-			<div style={{ width: 1, height: 20, background: 'var(--paper-deep)', margin: '0 2px' }} />
-			<button onClick={() => { onReply(); onClose(); }} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>Reply</button>
-		</div>
+		{QUICK_REACTIONS.map(e => (
+			<button key={e} onClick={() => { onReact(e); onClose(); }} style={{ fontSize: '1.2rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 5px', borderRadius: 8 }}
+				onMouseOver={ev => ev.currentTarget.style.transform='scale(1.3)'} onMouseOut={ev => ev.currentTarget.style.transform='scale(1)'}>{e}</button>
+		))}
+		<div style={{ width: 1, height: 20, background: 'var(--paper-deep)', margin: '0 2px' }} />
+		<button onClick={() => { onReply(); onClose(); }} style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8 }}>Reply</button>
+	</div>
 	);
 }
 
@@ -901,7 +889,6 @@ function EmojiPicker({ onSelect, onClose }) {
 }
 
 // ─── SwipeableMessage ─────────────────────────────────────────────────────────
-// Individual message row with swipe-right-to-reply on touch
 function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions, onReply, onReact, onContextMenu, partnerColor }) {
 	const [swipeDx, setSwipeDx] = useState(0);
 	const [hinted, setHinted] = useState(false);
@@ -910,7 +897,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 	const didTrigger = useRef(false);
 	const rowRef = useRef();
 
-	// touch swipe-right triggers reply
 	const onTS = (e) => {
 		if (e.touches.length !== 1) return;
 		swipeStartX.current = e.touches[0].clientX;
@@ -941,7 +927,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 
 	const msgReactions = reactions[msg.id] || {};
 	const isGrouped = msg.isGrouped;
-	// determine read: partner has read if last message from me is read
 	const isRead = isMe && isLast && msg.readBy && Object.keys(msg.readBy).some(id => id !== myUserId);
 
 	return (
@@ -954,7 +939,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 			onTouchMove={onTM}
 			onTouchEnd={onTE}>
 
-			{/* Reply-swipe indicator arrow */}
 			<div style={{
 				position: 'absolute',
 				[isMe ? 'right' : 'left']: isMe ? 'calc(100% + 4px)' : 'calc(100% + 4px)',
@@ -971,7 +955,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 				</svg>
 			</div>
 
-			{/* Avatar */}
 			{!isMe && !isGrouped && (
 				<div style={{ width: 26, height: 26, borderRadius: '50%', background: msg.color || partnerColor || '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.62rem', color: '#fff', flexShrink: 0, alignSelf: 'flex-end' }}>
 					{msg.name?.[0]?.toUpperCase()}
@@ -979,7 +962,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 			)}
 			{!isMe && isGrouped && <div style={{ width: 26, flexShrink: 0 }} />}
 
-			{/* Bubble column */}
 			<div
 				style={{
 					maxWidth: '75%',
@@ -988,7 +970,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 					transform: `translateX(${isMe ? -swipeDx : swipeDx}px)`,
 					transition: swipeDx === 0 ? 'transform 0.22s ease' : 'none',
 				}}>
-				{/* Reply preview */}
 				{msg.replyTo && (
 					<div style={{
 						padding: '0.28rem 0.65rem',
@@ -1006,9 +987,7 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 					</div>
 				)}
 
-				{/* Main bubble + hover actions */}
 				<div style={{ display: 'flex', alignItems: 'center', gap: 5, flexDirection: isMe ? 'row-reverse' : 'row' }}>
-					{/* Bubble */}
 					<div style={{
 						padding: '0.52rem 0.88rem',
 						background: isMe
@@ -1023,11 +1002,13 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 						boxShadow: isMe
 							? '0 2px 10px rgba(194,120,58,0.22)'
 							: '0 1px 4px rgba(26,18,8,0.07)',
+						// ── Pending messages appear slightly faded ──
+						opacity: msg._pending ? 0.6 : 1,
+						transition: 'opacity 0.3s ease',
 					}}>
 						{msg.text}
 					</div>
 
-					{/* Hover quick-react & reply (desktop) */}
 					<div className="msg-actions" style={{ display: 'flex', gap: 3, flexDirection: isMe ? 'row-reverse' : 'row' }}>
 						<button
 							onClick={() => onReply(msg)}
@@ -1051,7 +1032,6 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 					</div>
 				</div>
 
-				{/* Reaction pills */}
 				{Object.keys(msgReactions).length > 0 && (
 					<div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
 						{Object.entries(msgReactions).map(([emoji, data]) => {
@@ -1071,26 +1051,27 @@ function SwipeableMessage({ msg, isMe, isLast, myUserId, allMessages, reactions,
 					</div>
 				)}
 
-				{/* Timestamp + read receipt */}
 				{!isGrouped && (
 					<div style={{ display: 'flex', gap: '0.3rem', paddingInline: '0.25rem', alignItems: 'center' }}>
 						<span style={{ color: 'var(--ink-faint)', fontSize: '0.6rem' }}>{timeAgo(msg.ts)}</span>
 						<span style={{ color: 'var(--paper-deep)', fontSize: '0.6rem', background: 'var(--paper-mid)', borderRadius: 4, padding: '0 4px' }}>p.{(msg.page ?? 0) + 1}</span>
-						{isMe && isLast && (
+						{isMe && isLast && !msg._pending && (
 							<span className={isRead ? 'tick-read' : 'tick-sent'} style={{ fontSize: '0.7rem', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 1 }} title={isRead ? 'Seen' : 'Sent'}>
 								{isRead ? (
-									/* double-tick for read */
 									<svg width="14" height="10" viewBox="0 0 20 12" fill="none">
 										<path d="M1 6l4 4L13 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 										<path d="M7 6l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
 								) : (
-									/* single tick for sent */
 									<svg width="11" height="10" viewBox="0 0 14 12" fill="none">
 										<path d="M1 6l4 4L13 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
 								)}
 							</span>
+						)}
+						{/* Sending indicator for optimistic messages */}
+						{isMe && msg._pending && (
+							<span style={{ fontSize: '0.6rem', color: 'var(--ink-faint)', fontStyle: 'italic' }}>sending…</span>
 						)}
 					</div>
 				)}
@@ -1116,45 +1097,51 @@ function TypingBubble({ partner }) {
 }
 
 // ─── Chat Sidebar ─────────────────────────────────────────────────────────────
-function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle }) {
+function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose, isMobile, bookTitle, myName, myColor }) {
 	const [text, setText] = useState('');
 	const [emojiOpen, setEmojiOpen] = useState(false);
 	const [replyTo, setReplyTo] = useState(null);
-	// reactions: { [msgId]: { [emoji]: { count, users: [userId] } } }
 	const [reactions, setReactions] = useState({});
 	const [popup, setPopup] = useState(null);
 	const [inputOffset, setInputOffset] = useState(0);
-	// partnerTyping: true when partner is actively typing (simulated via last-message heuristic)
 	const [partnerTyping, setPartnerTyping] = useState(false);
-	// readUpTo: id of last message read by partner (locally tracked)
 	const [readUpTo, setReadUpTo] = useState(null);
+
+	// ── Optimistic messages: shown instantly by sender, dropped once Firebase echoes back ──
+	const [pendingMessages, setPendingMessages] = useState([]);
+
 	const endRef = useRef();
 	const inputRef = useRef();
-	const typingTimer = useRef(null);
 	const prevPartnerMsgCount = useRef(0);
 
-	// Auto-scroll to bottom on new messages
+	// Merge Firebase messages with pending optimistic ones.
+	// A pending message is dropped once a real message from the same user
+	// with the same text arrives within a 10-second window.
+	const allMessages = [
+		...messages,
+		...pendingMessages.filter(
+			(p) => !messages.some(
+				(m) => m.userId === myUserId && m.text === p.text && Math.abs(m.ts - p.ts) < 10000,
+			),
+		),
+	];
+
 	useEffect(() => {
 		endRef.current?.scrollIntoView({ behavior: 'smooth' });
-	}, [messages, partnerTyping]);
+	}, [allMessages.length, partnerTyping]);
 
-	// Focus input when opened
 	useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80); }, []);
 
-	// Simulate partner "typing" 1-2s before their new message appears
-	// In a real app this would come from a Firebase presence field
 	useEffect(() => {
 		const partnerMsgs = messages.filter(m => m.userId !== myUserId);
 		if (partnerMsgs.length > prevPartnerMsgCount.current) {
 			setPartnerTyping(false);
-			// Mark their latest message as "read" since we're in the chat
 			const last = partnerMsgs[partnerMsgs.length - 1];
 			if (last) setReadUpTo(last.id);
 		}
 		prevPartnerMsgCount.current = partnerMsgs.length;
 	}, [messages, myUserId]);
 
-	// Mark partner messages read when sidebar is open
 	useEffect(() => {
 		const partnerMsgs = messages.filter(m => m.userId !== myUserId);
 		if (partnerMsgs.length > 0) {
@@ -1162,7 +1149,6 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		}
 	}, [messages, myUserId]);
 
-	// Keyboard offset on mobile
 	useEffect(() => {
 		if (!isMobile || !window.visualViewport) return;
 		const h = () => setInputOffset(Math.max(0, window.innerHeight - window.visualViewport.height - 10));
@@ -1171,7 +1157,6 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		return () => { window.visualViewport.removeEventListener('resize', h); window.visualViewport.removeEventListener('scroll', h); };
 	}, [isMobile]);
 
-	// Auto-grow textarea
 	useEffect(() => {
 		const el = inputRef.current; if (!el) return;
 		el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -1179,18 +1164,31 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 
 	const send = () => {
 		if (!text.trim()) return;
-		onSend(text.trim(), replyTo);
+
+		// Capture replyTo before clearing state
+		const pendingReply = replyTo;
+		const pendingText = text.trim();
+
+		// ── Add optimistic message so sender sees it (with replyTo) immediately ──
+		const optimistic = {
+			id: `pending-${Date.now()}-${Math.random()}`,
+			userId: myUserId,
+			name: myName || 'You',
+			color: myColor,
+			text: pendingText,
+			page: currentPage,
+			ts: Date.now(),
+			replyTo: pendingReply ?? null,
+			_pending: true,
+		};
+		setPendingMessages(prev => [...prev, optimistic]);
+
+		onSend(pendingText, pendingReply);
 		setText('');
 		setReplyTo(null);
 		setEmojiOpen(false);
 		haptic(8);
 		setTimeout(() => inputRef.current?.focus(), 10);
-	};
-
-	const handleTextChange = (e) => {
-		setText(e.target.value);
-		// Briefly show "typing" indicator for self (not shown to self, but signals partner)
-		// In a real app, you'd write to Firebase here
 	};
 
 	const toggleReaction = (msgId, emoji) => {
@@ -1212,8 +1210,9 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 		haptic(5);
 	};
 
-	const grouped = messages.map((msg, i) => {
-		const prev = messages[i - 1];
+	// Use allMessages (Firebase + optimistic) for rendering
+	const grouped = allMessages.map((msg, i) => {
+		const prev = allMessages[i - 1];
 		return { ...msg, isGrouped: !!(prev && prev.userId === msg.userId && (msg.ts - prev.ts) < 60000) };
 	});
 
@@ -1257,7 +1256,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 				</button>
 			</div>
 
-			{/* ── Swipe hint (first load) ── */}
+			{/* ── Swipe hint ── */}
 			{messages.length > 0 && messages.length < 3 && (
 				<div style={{ padding: '0.4rem 1rem', background: 'rgba(194,120,58,0.06)', borderBottom: '1px solid var(--paper-deep)', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
 					<span style={{ fontSize: '0.9rem' }}>👈</span>
@@ -1269,7 +1268,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 			<div
 				className="chat-scroll"
 				style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', minHeight: 0 }}>
-				{messages.length === 0 && (
+				{allMessages.length === 0 && (
 					<div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', textAlign: 'center', gap: '0.75rem' }}>
 						<div style={{ fontSize: '2.2rem', animation: 'floatBob 3s ease-in-out infinite' }}>✍️</div>
 						<p style={{ color: 'var(--ink-faint)', fontSize: '0.83rem', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif", lineHeight: 1.7, maxWidth: 200 }}>
@@ -1281,7 +1280,6 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 
 				{grouped.map((msg, i) => {
 					const isMe = msg.userId === myUserId;
-					const isLastMsg = i === grouped.length - 1;
 					const isLastMine = msg.id === lastMyMsgId;
 					return (
 						<SwipeableMessage
@@ -1290,7 +1288,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 							isMe={isMe}
 							isLast={isLastMine}
 							myUserId={myUserId}
-							allMessages={messages}
+							allMessages={allMessages}
 							reactions={reactions}
 							partnerColor={partner.color}
 							onReply={setReplyTo}
@@ -1300,7 +1298,6 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 					);
 				})}
 
-				{/* Typing indicator */}
 				{partnerTyping && <TypingBubble partner={partner} />}
 
 				{popup && (
@@ -1308,7 +1305,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 						x={popup.x} y={popup.y}
 						onReact={emoji => toggleReaction(popup.msgId, emoji)}
 						onReply={() => {
-							const m = messages.find(m => m.id === popup.msgId);
+							const m = allMessages.find(m => m.id === popup.msgId);
 							if (m) setReplyTo(m);
 						}}
 						onClose={() => setPopup(null)}
@@ -1345,7 +1342,7 @@ function ChatSidebar({ messages, partner, myUserId, currentPage, onSend, onClose
 					<textarea
 						ref={inputRef}
 						value={text}
-						onChange={handleTextChange}
+						onChange={e => setText(e.target.value)}
 						onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
 						placeholder={`Message ${partner.name || 'partner'}…`}
 						rows={1}
@@ -1435,7 +1432,7 @@ async function _spFetch(url, token, options = {}) {
 	return res.json();
 }
 
-// ─── fetchAllPlaylists — paginates /me/playlists + curated Spotify mixes ──────
+// ─── fetchAllPlaylists ────────────────────────────────────────────────────────
 async function _fetchAllPlaylists(token) {
 	const all = []; const seen = new Set();
 	const add = (items) => { if (!items) return; for (const pl of items) { if (!pl?.id || seen.has(pl.id)) continue; seen.add(pl.id); all.push(pl); } };
@@ -1462,7 +1459,7 @@ async function _fetchAllPlaylists(token) {
 	return all;
 }
 
-// ─── useSpotify — Web Playback SDK + Firestore sync ───────────────────────────
+// ─── useSpotify ───────────────────────────────────────────────────────────────
 function useSpotify({ roomId, clientId, redirectUri }) {
 	const [token,            setToken]            = useState(() => sessionStorage.getItem('sp_token') || null);
 	const [player,           setPlayer]           = useState(null);
@@ -1479,7 +1476,6 @@ function useSpotify({ roomId, clientId, redirectUri }) {
 	const lastSentRef  = useRef(null);
 	const isSyncing    = useRef(false);
 
-	// OAuth code exchange
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code'); const verifier = sessionStorage.getItem('sp_verifier');
@@ -1498,7 +1494,6 @@ function useSpotify({ roomId, clientId, redirectUri }) {
 		}).catch(e => setError('Token exchange failed: ' + e.message));
 	}, [clientId, redirectUri]);
 
-	// Load Web Playback SDK script
 	useEffect(() => {
 		if (!token) return;
 		if (window.Spotify) { setSdkReady(true); return; }
@@ -1510,7 +1505,6 @@ function useSpotify({ roomId, clientId, redirectUri }) {
 		}
 	}, [token]);
 
-	// Init Web Playback SDK player
 	useEffect(() => {
 		if (!sdkReady || !token) return;
 		const p = new window.Spotify.Player({ name: 'PageTurn 📚', getOAuthToken: cb => cb(token), volume: 0.6 });
@@ -1545,20 +1539,17 @@ function useSpotify({ roomId, clientId, redirectUri }) {
 		return () => p.disconnect();
 	}, [sdkReady, token, roomId]);
 
-	// Fetch all playlists when token is available
 	useEffect(() => {
 		if (!token) return;
 		setLoadingPlaylists(true);
 		_fetchAllPlaylists(token).then(setPlaylists).catch(e => console.error('Playlist fetch:', e)).finally(() => setLoadingPlaylists(false));
 	}, [token]);
 
-	// Subscribe to partner's Firestore music state
 	useEffect(() => {
 		if (!roomId) return;
 		return subscribeMusicState(roomId, setMusicSync);
 	}, [roomId]);
 
-	// Apply incoming sync from partner
 	useEffect(() => {
 		if (!musicSync || !deviceId || !token) return;
 		if (suppressSync.current || isSyncing.current) return;
@@ -1592,11 +1583,6 @@ function useSpotify({ roomId, clientId, redirectUri }) {
 		player?.disconnect();
 	}, [player]);
 
-	const withControl = (fn) => useCallback(async (...args) => {
-		suppressSync.current = true;
-		try { await fn(...args); } finally { setTimeout(() => { suppressSync.current = false; }, 3000); }
-	}, [fn]);
-
 	const togglePlay   = useCallback(async () => { suppressSync.current = true; try { await player?.togglePlay(); } finally { setTimeout(() => { suppressSync.current = false; }, 3000); } }, [player]);
 	const nextTrack    = useCallback(async () => { suppressSync.current = true; try { await player?.nextTrack(); }  finally { setTimeout(() => { suppressSync.current = false; }, 3000); } }, [player]);
 	const prevTrack    = useCallback(async () => { suppressSync.current = true; try { await player?.previousTrack(); } finally { setTimeout(() => { suppressSync.current = false; }, 3000); } }, [player]);
@@ -1624,14 +1610,12 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 	const [seekVal,      setSeekVal]     = useState(0);
 	const [showPlaylists,setShowPlaylists] = useState(false);
 
-	// Derive display track — prefer local SDK state, fallback to partner's synced track
 	const localTrack  = sp.playerState?.track_window?.current_track;
 	const isPlaying   = sp.token ? !(sp.playerState?.paused ?? true) : false;
 	const position    = sp.playerState?.position    || 0;
 	const duration    = sp.playerState?.duration    || 0;
 	const isLocal     = !!sp.token && !!localTrack;
 
-	// Partner's synced track (shown when we haven't connected yet)
 	const syncedTrack = sp.musicSync;
 	const display = isLocal
 		? {
@@ -1671,12 +1655,10 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 		<>
 			{isMobile && <div className="sheet-handle" style={{ background: '#333' }} />}
 
-			{/* Blurred album art bg */}
 			{display?.albumArt && (
 				<div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: `url(${display.albumArt})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(60px) brightness(0.18) saturate(1.8)', transform: 'scale(1.15)', pointerEvents: 'none' }} />
 			)}
 
-			{/* ── Header ── */}
 			<div style={{ position: 'relative', zIndex: 2, padding: '0.9rem 1rem', display: 'flex', alignItems: 'center', gap: '0.65rem', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(13,13,13,0.55)', backdropFilter: 'blur(20px)', flexShrink: 0 }}>
 				<SpotifyLogo size="18" color="#1DB954" />
 				<span style={{ flex: 1, color: '#fff', fontFamily: "'Lora',serif", fontWeight: 700, fontSize: '0.92rem' }}>Music</span>
@@ -1700,7 +1682,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 				<button onClick={onClose} className="sp-btn" style={{ width: 30, height: 30, color: '#777', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', fontSize: '0.82rem' }}>✕</button>
 			</div>
 
-			{/* ── Not logged in ── */}
 			{!sp.token ? (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.75rem', gap: '1.5rem', textAlign: 'center', overflowY: 'auto' }}>
 					<div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg,#1DB954 0%,#0f7a35 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 0 rgba(29,185,84,0.4)', animation: 'spPulse 2.4s ease-in-out infinite', flexShrink: 0 }}>
@@ -1736,7 +1717,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 					)}
 				</div>
 
-			/* ── Playlist browser ── */
 			) : showPlaylists ? (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
 					{sp.loadingPlaylists ? (
@@ -1769,7 +1749,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 					))}
 				</div>
 
-			/* ── SDK connecting ── */
 			) : sp.connecting ? (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
 					<div style={{ width: 28, height: 28, border: '2.5px solid rgba(29,185,84,0.3)', borderTopColor: '#1DB954', borderRadius: '50%', animation: 'spSpin 0.8s linear infinite' }} />
@@ -1777,7 +1756,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 					<p style={{ color: '#3a3a3a', fontSize: '0.68rem' }}>Open Spotify on any device first</p>
 				</div>
 
-			/* ── No device yet ── */
 			) : sp.token && !sp.deviceId ? (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
 					<div style={{ fontSize: '2.5rem', animation: 'floatBob 3s ease-in-out infinite' }}>📱</div>
@@ -1786,10 +1764,8 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 					{sp.error && <p style={{ color: '#e05c4a', fontSize: '0.73rem' }}>⚠ {sp.error}</p>}
 				</div>
 
-			/* ── Now playing ── */
 			) : display ? (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-					{/* Album art + track info */}
 					<div style={{ padding: '1.5rem 1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
 						<div style={{ position: 'relative' }}>
 							<div style={{ width: isMobile ? 140 : 180, height: isMobile ? 140 : 180, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)', transition: 'transform 0.3s', transform: display.isPlaying ? 'scale(1)' : 'scale(0.94)' }}>
@@ -1814,9 +1790,7 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 						</div>
 					</div>
 
-					{/* Progress + controls */}
 					<div style={{ padding: '0 1.25rem 0.75rem', flexShrink: 0 }}>
-						{/* Seek bar */}
 						<div style={{ marginBottom: '0.85rem' }}>
 							<div style={{ position: 'relative', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.12)', marginBottom: '0.3rem', cursor: isLocal ? 'pointer' : 'default' }}>
 								<div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${progressPct}%`, background: '#1DB954', borderRadius: 4, transition: seeking ? 'none' : 'width 1s linear', pointerEvents: 'none' }} />
@@ -1836,7 +1810,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 							</div>
 						</div>
 
-						{/* Playback buttons */}
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
 							<button onClick={sp.prevTrack} disabled={!isLocal} className="sp-btn" style={{ width: 40, height: 40, color: isLocal ? '#fff' : '#3a3a3a' }}>
 								<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" /></svg>
@@ -1851,7 +1824,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 							</button>
 						</div>
 
-						{/* Volume */}
 						<div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={volume === 0 ? '#666' : '#a0a0a0'} strokeWidth="2" strokeLinecap="round">
 								<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -1866,7 +1838,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 					</div>
 				</div>
 
-			/* ── Nothing playing ── */
 			) : (
 				<div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.25rem', padding: '2.5rem 2rem', textAlign: 'center' }}>
 					<div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'floatBob 3.5s ease-in-out infinite' }}>
@@ -1903,7 +1874,6 @@ function MusicSidebar({ roomId, onClose, isMobile }) {
 		</div>
 	);
 }
-
 
 // ─── Recursive chapter outline flattener ─────────────────────────────────────
 async function extractChapters(pdfDoc) {
@@ -2013,8 +1983,8 @@ export default function ReaderPage() {
 	useEffect(() => { if (chatOpen) { setUnreadCount(0); setToast(null); } }, [chatOpen]);
 	useEffect(() => { scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentPage]);
 
-	const openChat = useCallback(() => { setChatOpen((v) => { if (!v) { setTocOpen(false); setMusicOpen(false); } return !v; }); }, []);
-	const openToc = useCallback(() => { setTocOpen((v) => { if (!v) { setChatOpen(false); setMusicOpen(false); } return !v; }); }, []);
+	const openChat  = useCallback(() => { setChatOpen((v) => { if (!v) { setTocOpen(false); setMusicOpen(false); } return !v; }); }, []);
+	const openToc   = useCallback(() => { setTocOpen((v)  => { if (!v) { setChatOpen(false); setMusicOpen(false); } return !v; }); }, []);
 	const openMusic = useCallback(() => { setMusicOpen((v) => { if (!v) { setChatOpen(false); setTocOpen(false); } return !v; }); }, []);
 
 	const cycleTheme = useCallback(() => setTheme(t => (t + 1) % 3), []);
@@ -2068,13 +2038,6 @@ export default function ReaderPage() {
 
 	const handleSend = useCallback((text, replyTo = null) => { firebaseSend(text, currentPage - 1, replyTo); }, [firebaseSend, currentPage]);
 
-	const handleEndRoom = async () => {
-		setEnding(true);
-		try { await deleteRoom(roomId); navigate('home'); }
-		catch (e) { console.error(e); alert(`Failed to end room: ${e.message}`); setEnding(false); setShowEndDialog(false); }
-	};
-
-	// FIX: themeClass derived from theme state index
 	const themeClass = theme === 1 ? 'theme-sepia' : theme === 2 ? 'theme-dark' : '';
 
 	const progress = totalPages > 1 ? ((currentPage - 1) / (totalPages - 1)) * 100 : 100;
@@ -2161,11 +2124,7 @@ export default function ReaderPage() {
 					/>
 				)}
 
-				{/* Main reading area — FIX: flexDirection column so page nav sits below scroll */}
-				<div
-					style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}>
-
-					{/* Touch/swipe layer sits on top of the scrollable area */}
+				<div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', minWidth: 0 }}>
 					<div
 						style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
 						{...(isMobile ? {
@@ -2184,10 +2143,7 @@ export default function ReaderPage() {
 							</div>
 						)}
 
-						<div
-							ref={scrollRef}
-							className="reader-scroll"
-							style={{ flex: 1, overflowY: 'auto' }}>
+						<div ref={scrollRef} className="reader-scroll" style={{ flex: 1, overflowY: 'auto' }}>
 							{pdfLoading ? (
 								<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', minHeight: 300, padding: '2rem' }}>
 									<div style={{ width: 32, height: 32, border: '3px solid var(--paper-deep)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -2209,7 +2165,6 @@ export default function ReaderPage() {
 									<button onClick={() => navigate('home')} style={{ color: 'var(--amber)', fontWeight: 600, border: '1.5px solid var(--amber)', borderRadius: 100, padding: '0.5rem 1.25rem', background: 'none', cursor: 'pointer' }}>← Go Home</button>
 								</div>
 							) : pdfDoc ? (
-								// FIX: themeClass passed down to PdfPage so filter is applied to canvas wrapper
 								<PdfPage pdfDoc={pdfDoc} pageNum={currentPage} zoom={zoom} themeClass={themeClass} />
 							) : null}
 						</div>
@@ -2226,8 +2181,6 @@ export default function ReaderPage() {
 						</div>
 					)}
 
-					{/* FIX: Desktop page nav moved OUT of absolute positioning into normal flow
-					    so it's always visible and never clipped by overflow:hidden */}
 					{totalPages > 0 && (
 						<div className="desktop-page-nav">
 							<button className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}
@@ -2255,6 +2208,8 @@ export default function ReaderPage() {
 						messages={messages}
 						partner={partnerObj}
 						myUserId={userId}
+						myName={name}
+						myColor={color}
 						currentPage={currentPage - 1}
 						onSend={handleSend}
 						onClose={() => setChatOpen(false)}
